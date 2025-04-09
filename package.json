@@ -1,8 +1,8 @@
 {
   "name": "discordia",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "Um chat integrado com diversas IAs",
+  "author": "Edvaldo de Ramos Junior",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
@@ -20,9 +20,12 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@google/genai": "^0.8.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "dotenv": "^16.4.7",
+    "openai": "^4.93.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
