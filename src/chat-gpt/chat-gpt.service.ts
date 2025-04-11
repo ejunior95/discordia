@@ -1,18 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import OpenAI from "openai";
+import { getCustomContent } from 'src/config/getCustomContent';
 @Injectable()
 export class ChatGptService {
-    aiInstance = new OpenAI();
+    private aiInstance = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+    });
+    customContent: string = getCustomContent('chat-gpt');
     
     async execute() {
         try {
-            const { output_text } = await this.aiInstance.responses.create({
-                model: "gpt-4o",
-                input: "Write a one-sentence bedtime story about a unicorn."
-            });
-            return output_text;
+            const response = await this.aiInstance.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                  {
+                    role: 'system',
+                    content: this.customContent
+                  }
+                ],
+                temperature: 0.7
+              });
+            return response.choices[0].message.content;
         } catch (error) {
-            console.error(error);
+            console.error('Erro na chamada da OpenAI:', error);
             return error;
         };     
     };
