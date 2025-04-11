@@ -1,6 +1,6 @@
 {
   "name": "discordia",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Um chat integrado com diversas IAs",
   "author": "Edvaldo de Ramos Junior",
   "private": true,
@@ -24,6 +24,7 @@
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "axios": "^1.8.4",
     "dotenv": "^16.4.7",
     "openai": "^4.93.0",
     "reflect-metadata": "^0.2.2",
