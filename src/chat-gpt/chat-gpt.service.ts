@@ -8,7 +8,7 @@ export class ChatGptService {
     });
     customContent: string = getCustomContent('chat-gpt');
     
-    async execute() {
+    async execute(question: string) {
         try {
             const response = await this.aiInstance.chat.completions.create({
                 model: 'gpt-4o',
@@ -16,7 +16,11 @@ export class ChatGptService {
                   {
                     role: 'system',
                     content: this.customContent
-                  }
+                  },
+                  {
+                    role: 'user',
+                    content: question
+                  },
                 ],
                 temperature: 0.7
               });
