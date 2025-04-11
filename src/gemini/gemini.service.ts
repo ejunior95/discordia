@@ -7,15 +7,16 @@ export class GeminiService {
   private aiInstance = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   customContent: string = getCustomContent('gemini');
 
-  async execute() {
+  async execute(question: string) {
     try {
+      const fullPrompt = `${this.customContent} Dito isso, minha pergunta é ${question}`
       const { text } = await this.aiInstance.models.generateContent({
-        model: "gemini-flash-thinking",
+        model: "gemini-2.0-flash",
         contents: [
             {
-                role: "system",
-                parts: [ { text: this.customContent } ]
-            }
+                role: "user",
+                parts: [ { text: fullPrompt } ]
+            },
         ],
       });
       return text;
