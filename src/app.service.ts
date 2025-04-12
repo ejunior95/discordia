@@ -13,7 +13,11 @@ export class AppService {
 
   async askToAll(question: string) {
     try {
-      return 'Hello World!';
+      return {
+        'chat-gpt': await this.chatGptService.execute(question),
+        'gemini': await this.geminiService.execute(question),
+        'deepseek': await this.deepseekService.execute(question),
+      }
     } catch (error) {
       console.error('Erro no retorno dos agentes: ', error);
       return error;
@@ -22,14 +26,20 @@ export class AppService {
 
   async askToOne(question: string, agent: string) {
     try {
-      return 'Hello World!';
+      const response = {};
+      if (agent === 'deepseek') {
+        response[agent] = await this.deepseekService.execute(question);
+      }
+      if (agent === 'gemini') {
+        response[agent] = await this.geminiService.execute(question);
+      }
+      if (agent === 'chat-gpt') {
+        response[agent] = await this.chatGptService.execute(question);
+      }
+      return response;
     } catch (error) {
       console.error(error);
       return error;
     };
-  };
-
-  formatResponse() {
-  
   };
 }
