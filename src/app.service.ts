@@ -19,7 +19,7 @@ export class AppService {
         'deepseek': await this.deepseekService.execute(question),
       }
     } catch (error) {
-      console.error('Erro no retorno dos agentes: ', error);
+      console.error('Erro no retorno em um ou mais dos agentes: ', error);
       return error;
     };
   };
