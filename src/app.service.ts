@@ -10,7 +10,26 @@ export class AppService {
     private readonly deepseekService: DeepseekService,
     private readonly geminiService: GeminiService
   ) {}
-  getHello(): string {
-    return 'Hello World!';
-  }
+
+  async askToAll(question: string) {
+    try {
+      return 'Hello World!';
+    } catch (error) {
+      console.error('Erro no retorno dos agentes: ', error);
+      return error;
+    };
+  };
+
+  async askToOne(question: string, agent: string) {
+    try {
+      return 'Hello World!';
+    } catch (error) {
+      console.error(error);
+      return error;
+    };
+  };
+
+  formatResponse() {
+  
+  };
 }
