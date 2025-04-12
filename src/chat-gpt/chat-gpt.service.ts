@@ -3,9 +3,7 @@ import OpenAI from "openai";
 import { getCustomContent } from 'src/config/getCustomContent';
 @Injectable()
 export class ChatGptService {
-    private aiInstance = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-    });
+    private aiInstance = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     customContent: string = getCustomContent('chat-gpt');
     
     async execute(question: string) {
@@ -24,6 +22,7 @@ export class ChatGptService {
                 ],
                 temperature: 0.7
               });
+            
             return response.choices[0].message.content;
         } catch (error) {
             console.error('Erro na chamada da OpenAI:', error);
