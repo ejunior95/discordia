@@ -21,10 +21,11 @@
   },
   "dependencies": {
     "@google/genai": "^0.8.0",
+    "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
-    "axios": "^1.8.4",
     "dotenv": "^16.4.7",
     "openai": "^4.93.0",
     "reflect-metadata": "^0.2.2",
