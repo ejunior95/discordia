@@ -2,7 +2,7 @@ import { Controller, HttpStatus, Post, Req, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { Request, Response } from 'express';
 
-const ALLOWED_AGENTS = ['deepseek', 'gemini', 'chat-gpt'];
+const ALLOWED_AGENTS = ['deepseek', 'gemini', 'chat-gpt', 'grok'];
 
 @Controller()
 export class AppController {
