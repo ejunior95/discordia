@@ -1,15 +1,17 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ChatGptModule } from './chat-gpt/chat-gpt.module';
-import { DeepseekModule } from './deepseek/deepseek.module';
-import { GeminiModule } from './gemini/gemini.module';
-import { DeepseekService } from './deepseek/deepseek.service';
-import { GeminiService } from './gemini/gemini.service';
-import { ChatGptService } from './chat-gpt/chat-gpt.service';
 import { HttpModule } from '@nestjs/axios';
 import { Agent } from 'https';
 import { ConfigModule } from '@nestjs/config';
+import { ChatGptModule } from './modules/chat-gpt/chat-gpt.module';
+import { DeepseekModule } from './modules/deepseek/deepseek.module';
+import { GeminiModule } from './modules/gemini/gemini.module';
+import { DeepseekService } from './modules/deepseek/deepseek.service';
+import { GeminiService } from './modules/gemini/gemini.service';
+import { ChatGptService } from './modules/chat-gpt/chat-gpt.service';
+import { GrokModule } from './modules/grok/grok.module';
+import { GrokService } from './modules/grok/grok.service';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { ConfigModule } from '@nestjs/config';
     ChatGptModule, 
     DeepseekModule, 
     GeminiModule,
+    GrokModule,
   ],
   controllers: [AppController],
   providers: [
@@ -30,6 +33,7 @@ import { ConfigModule } from '@nestjs/config';
     DeepseekService, 
     GeminiService, 
     ChatGptService,
+    GrokService
   ],
 })
 export class AppModule {}
