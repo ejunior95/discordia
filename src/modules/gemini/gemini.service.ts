@@ -19,7 +19,9 @@ export class GeminiService {
             },
         ],
       });
-      return text;
+      return {
+        response: text
+      };
     } catch (error) {
       console.error('Erro na chamada do Gemini:', error);
       return error;
