@@ -15,6 +15,7 @@ export const ChatBody = () => {
                         id="text-question" 
                         rows={3}
                         placeholder="O que você quer saber?" 
+                        autoFocus
                         className="px-2 w-full outline-0 text-lg text-foreground resize-none" 
                     />
                   <Button variant="outline" disabled className="cursor-pointer absolute left-2 bottom-2">
