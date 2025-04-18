@@ -7,7 +7,7 @@ export const Navbar = () => {
   return (
     <nav className="p-4 flex w-full justify-between bg-background text-foreground">
         <div className="flex gap-3">
-          <img src={Logo} className="w-14 grayscale-100" alt="logo-discordia" />
+          <img src={Logo} className="w-14" alt="logo-discordia" />
           <span className="text-2xl font-semibold tracking-tighter py-1 select-none">DiscordIA</span>
         </div>
         <div className="flex gap-4">
