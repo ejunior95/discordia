@@ -1,12 +1,10 @@
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Paperclip, SendHorizontal } from "lucide-react"
-import GrokLogo  from "../assets/grok/grok-simple-white.svg"
-import GeminiLogo  from "../assets/gemini/gemini-simple-white.svg"
-import DeepseekLogo  from "../assets/deepseek/deepseek-simple-white.svg"
-import ChatGptLogo  from "../assets/chat-gpt/openai-simple-white.svg"
+import { DeepSeek, Gemini, Grok, OpenAI } from '@lobehub/icons';
 
 export const ChatBody = () => {
+
     return(
         <section className="w-210 pb-32">
                 <p className="text-4xl font-semibold tracking-tighter select-none">Boa tarde, Junior.</p>
@@ -35,32 +33,32 @@ export const ChatBody = () => {
 
                   <div className="w-full flex items-center justify-between mt-3">
 
-                    <div className="flex items-center space-x-4 rounded-md border p-4 select-none">
-                      <img src={ChatGptLogo} className="w-8 h-8 invert-100" alt="logo-chatgpt" />
+                    <div className="flex items-center space-x-4 rounded-md border p-4 select-none w-48">
+                      <OpenAI size={35} />
                       <div className="flex-1 space-y-1">
                         <p className="text-sm font-medium leading-none">Chat GPT</p>
                         <p className="text-sm text-muted-foreground">gpt-4o</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-4 rounded-md border p-4 select-none">
-                      <img src={DeepseekLogo} className="w-8 h-8 invert-100" alt="logo-deepseek" />
+                    <div className="flex items-center space-x-4 rounded-md border p-4 select-none w-48">
+                      <DeepSeek size={35} />
                       <div className="flex-1 space-y-1">
                         <p className="text-sm font-medium leading-none">Deepseek</p>
                         <p className="text-sm text-muted-foreground">deepseek-chat</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-4 rounded-md border p-4 select-none">
-                      <img src={GeminiLogo} className="w-8 h-8 invert-100" alt="logo-gemini" />
+                    <div className="flex items-center space-x-4 rounded-md border p-4 select-none w-48">
+                      <Gemini size={35} />
                       <div className="flex-1 space-y-1">
                         <p className="text-sm font-medium leading-none">Gemini</p>
                         <p className="text-sm text-muted-foreground">gemini-2.0-flash</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-4 rounded-md border p-4 select-none">
-                      <img src={GrokLogo} className="w-8 h-8 invert-100" alt="logo-grok" />
+                    <div className="flex items-center space-x-4 rounded-md border p-4 select-none w-48">
+                      <Grok size={35} />
                       <div className="flex-1 space-y-1">
                         <p className="text-sm font-medium leading-none">Grok</p>
                         <p className="text-sm text-muted-foreground">grok-3-beta</p>
