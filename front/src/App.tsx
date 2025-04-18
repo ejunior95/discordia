@@ -1,26 +1,24 @@
-import { ThemeProvider } from './components/theme-provider'
-import { ChatBody } from './custom-components/ChatBody'
-import { Navbar } from './custom-components/Navbar'
+import { ThemeProvider } from './components/theme-provider';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Suspense, lazy } from "react";
 
-function App() {
+const Chat = lazy(() => import('./pages/Chat'));
+
+export default function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="discordia-theme-select">
-      <Navbar />
-      <section 
-        className='
-          w-full 
-          h-dvh 
-          flex-col 
-          place-content-center 
-          justify-items-center 
-          absolute 
-          top-18 
-          left-0'
-        >
-        <ChatBody />
-      </section>
+      <BrowserRouter>
+        <Suspense fallback={<div>Loading...</div>}>
+          <Routes>
+            <Route path="/" element={<Chat />} />
+            {/* <Route path="/about" element={<About />} /> */}
+            {/* Nested route with layout
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route path="stats" element={<Stats />} />
+            </Route> */}
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
     </ThemeProvider>
-  )
-}
-
-export default App
+  );
+};
