@@ -5,6 +5,8 @@ import Loader from './custom-components/Loader';
 
 const Home = lazy(() => import('./pages/Home'));
 const Chat = lazy(() => import('./pages/Chat'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
 
 export default function App() {
   return (
@@ -14,6 +16,8 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/chat" element={<Chat />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             {/* Nested route with layout
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route path="stats" element={<Stats />} />
