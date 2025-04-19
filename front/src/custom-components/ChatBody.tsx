@@ -26,13 +26,13 @@ export const ChatBody = () => {
                 </div>
                 <div className="w-210 h-12">
                   
-                  <div className="flex w-full items-center justify-center mt-3">
-                    <hr className="w-12 mr-4" />
-                    <p className="text-sm text-muted-foreground">IAs competidoras</p>
-                    <hr className="w-12 ml-4" />
+                  <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border py-6">
+                    <span className="relative z-10 bg-background px-4 text-muted-foreground select-none">
+                      IA's competidoras
+                    </span>
                   </div>
 
-                  <div className="w-full flex items-center justify-between mt-3">
+                  <div className="w-full flex items-center justify-between">
 
                     <div className="flex items-center space-x-4 rounded-md border p-4 select-none w-48">
                       <OpenAI size={35} />
