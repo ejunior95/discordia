@@ -1,0 +1,37 @@
+import {
+    Entity,
+    ObjectIdColumn,
+    Column,
+    CreateDateColumn,
+    UpdateDateColumn,
+    DeleteDateColumn,
+  } from 'typeorm';
+  import { ObjectId } from 'mongodb';
+  
+  @Entity('users')
+  export class User {
+    @ObjectIdColumn()
+    id: ObjectId;
+  
+    @Column()
+    name: string;
+  
+    @Column({ unique: true })
+    email: string;
+  
+    @Column()
+    password: string;
+  
+    @Column({ nullable: true })
+    avatar?: string;
+  
+    @CreateDateColumn({ type: 'timestamp' })
+    created_at: Date;
+  
+    @UpdateDateColumn({ type: 'timestamp' })
+    updated_at: Date;
+  
+    @DeleteDateColumn({ type: 'timestamp' })
+    deleted_at?: Date;
+  }
+  
