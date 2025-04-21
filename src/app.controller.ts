@@ -1,6 +1,7 @@
-import { Controller, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import { Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import { Request, Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 
 const ALLOWED_AGENTS = ['deepseek', 'gemini', 'chat-gpt', 'grok'];
 
@@ -8,6 +9,7 @@ const ALLOWED_AGENTS = ['deepseek', 'gemini', 'chat-gpt', 'grok'];
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('/ask-to-all')
     async askToAllAgents(@Req() req: Request, @Res() res: Response) {
         try {
@@ -24,6 +26,7 @@ export class AppController {
         };
     };
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('/ask-to-one')
     async askToOnlyOneAgent(@Req() req: Request, @Res() res: Response) {
         try {
