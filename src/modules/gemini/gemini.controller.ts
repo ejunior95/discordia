@@ -1,6 +1,7 @@
-import { Controller, Get, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import { Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { GeminiService } from './gemini.service';
 import { Request, Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('gemini')
 export class GeminiController {
@@ -8,6 +9,7 @@ export class GeminiController {
         private readonly geminiService: GeminiService,
     ) {}
 
+    @UseGuards(AuthGuard('jwt'))
     @Post('/test-message')
     async testMessage(@Req() req: Request, @Res() res: Response) {
         try {
