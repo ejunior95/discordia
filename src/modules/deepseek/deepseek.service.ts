@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { lastValueFrom } from 'rxjs';
-import { getCustomContent } from 'src/config/getCustomContent';
+import { getCustomContent } from 'src/utils/getCustomContent';
 @Injectable()
 export class DeepseekService {
     constructor (
