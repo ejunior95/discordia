@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import OpenAI from "openai";
-import { getCustomContent } from 'src/config/getCustomContent';
+import { getCustomContent } from 'src/utils/getCustomContent';
 @Injectable()
 export class ChatGptService {
     private aiInstance = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
