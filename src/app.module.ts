@@ -14,6 +14,7 @@ import { GrokModule } from './modules/grok/grok.module';
 import { GrokService } from './modules/grok/grok.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './modules/users/users.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { UsersModule } from './modules/users/users.module';
     GeminiModule,
     GrokModule,
     UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
