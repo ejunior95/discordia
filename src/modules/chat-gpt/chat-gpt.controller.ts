@@ -1,6 +1,7 @@
-import { Controller, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import { Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ChatGptService } from './chat-gpt.service';
 import { Request, Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('chat-gpt')
 export class ChatGptController {
@@ -8,6 +9,7 @@ export class ChatGptController {
         private readonly chatGptService: ChatGptService,
     ) {}
 
+    @UseGuards(AuthGuard('jwt'))
     @Post('/test-message')
     async testMessage(@Req() req: Request, @Res() res: Response) {
         try {
