@@ -9,5 +9,6 @@ import { S3Service } from 'src/shared/s3.service';
   imports: [TypeOrmModule.forFeature([User])],
   controllers: [UsersController],
   providers: [UsersService, S3Service],
+  exports: [UsersService],
 })
 export class UsersModule {}
