@@ -1,6 +1,8 @@
-import { Controller, Get, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import { Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { GrokService } from './grok.service';
+import { AuthGuard } from '@nestjs/passport';
+
 
 @Controller('grok')
 export class GrokController {
@@ -8,6 +10,7 @@ export class GrokController {
         private readonly grokService: GrokService,
     ) {}
 
+    @UseGuards(AuthGuard('jwt'))
     @Post('/test-message')
     async testMessage(@Req() req: Request, @Res() res: Response) {
         try {
