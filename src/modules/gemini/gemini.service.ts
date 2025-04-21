@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { GoogleGenAI } from "@google/genai";
-import { getCustomContent } from 'src/config/getCustomContent';
+import { getCustomContent } from 'src/utils/getCustomContent';
 
 @Injectable()
 export class GeminiService {
