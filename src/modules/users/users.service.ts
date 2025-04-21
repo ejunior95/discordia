@@ -28,12 +28,12 @@ export class UsersService {
 
   async findOne(id: string): Promise<User> {
     const user = await this.userRepository.findOneBy({ _id: new ObjectId(id) });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Usuário não encontrado');
     return user;
   }
 
   async update(id: string, data: UpdateUserDto) {
-    const user = await this.userRepository.findOneBy({ id });
+    const user = await this.userRepository.findOneBy({ _id: new ObjectId(id) });
   
     if (!user) {
       throw new NotFoundException('Usuário não encontrado');
