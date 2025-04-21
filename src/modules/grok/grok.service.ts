@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Injectable } from '@nestjs/common';
-import { getCustomContent } from 'src/config/getCustomContent';
+import { getCustomContent } from 'src/utils/getCustomContent';
 
 @Injectable()
 export class GrokService {
