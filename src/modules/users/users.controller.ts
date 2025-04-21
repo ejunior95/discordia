@@ -23,18 +23,23 @@ import { multerOptions } from 'src/shared/file.upload.config';
 import { UserResponseDto } from './dtos/response-user.dto';
 import { plainToInstance } from 'class-transformer';
 import { AuthGuard } from '@nestjs/passport';
+import { EmailService } from 'src/shared/email.service';
 
 @Controller('users')
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly s3Service: S3Service,
+    private readonly emailService: EmailService,
   ) {}
 
   @Post()
   async create(@Body() body: CreateUserDto): Promise<UserResponseDto> {
     try {
       const user = await this.usersService.create(body);
+
+      await this.emailService.sendWelcomeEmail(user.email, user.name);
+
       return plainToInstance(UserResponseDto, user, { excludeExtraneousValues: true });
     } catch (error) {
       throw new InternalServerErrorException(`Erro ao criar usuário - ${error}`);
