@@ -1,6 +1,7 @@
-import { Controller, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import { Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { DeepseekService } from './deepseek.service';
 import { Request, Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('deepseek')
 export class DeepseekController {
@@ -8,6 +9,7 @@ export class DeepseekController {
         private readonly deepSeekService: DeepseekService,
     ) {}
 
+    @UseGuards(AuthGuard('jwt'))
     @Post('/test-message')
     async testMessage(@Req() req: Request, @Res() res: Response) {
         try {
