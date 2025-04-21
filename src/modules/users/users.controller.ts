@@ -12,6 +12,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
   HttpException,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
@@ -21,6 +22,7 @@ import { S3Service } from 'src/shared/s3.service';
 import { multerOptions } from 'src/shared/file.upload.config';
 import { UserResponseDto } from './dtos/response-user.dto';
 import { plainToInstance } from 'class-transformer';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('users')
 export class UsersController {
@@ -39,6 +41,7 @@ export class UsersController {
     }
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get()
   async findAll(): Promise<UserResponseDto[]> {
     try {
@@ -51,6 +54,7 @@ export class UsersController {
     }
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<UserResponseDto> {
     try {
@@ -64,6 +68,7 @@ export class UsersController {
     }
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Put(':id')
   async update(
     @Param('id') id: string,
@@ -77,6 +82,7 @@ export class UsersController {
     }
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
   async remove(@Param('id') id: string): Promise<{ message: string }> {
     try {
@@ -86,7 +92,8 @@ export class UsersController {
       throw new InternalServerErrorException(`Erro ao remover usuário - ${error}`);
     }
   }
-
+  
+  @UseGuards(AuthGuard('jwt'))
   @Patch(':id/avatar')
   @UseInterceptors(FileInterceptor('avatar', multerOptions))
   async uploadAvatar(
