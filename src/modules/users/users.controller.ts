@@ -38,8 +38,6 @@ export class UsersController {
     try {
       const user = await this.usersService.create(body);
 
-      await this.emailService.sendWelcomeEmail(user.email, user.name);
-
       return plainToInstance(UserResponseDto, user, { excludeExtraneousValues: true });
     } catch (error) {
       throw new InternalServerErrorException(`Erro ao criar usuário - ${error}`);
