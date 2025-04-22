@@ -6,12 +6,18 @@ import { MongoServerError, ObjectId } from 'mongodb';
 import { hashPassword } from 'src/utils/hash';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
+import { JwtService } from '@nestjs/jwt';
+import { EmailService } from 'src/shared/email.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: MongoRepository<User>,
+    private readonly jwtService: JwtService,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService
   ) {}
 
   async create(data: CreateUserDto): Promise<User> {
@@ -21,8 +27,22 @@ export class UsersService {
       });
       const result = await this.userRepository.save(user);
       if (result instanceof MongoServerError && result?.code === 11000) {
-        throw new BadRequestException('Este e-mail já está em uso.');
+        throw new BadRequestException('Este email já está em uso.');
       }
+
+      const secretEmail = this.configService.get<string>('EMAIL_VERIFICATION_SECRET');
+      if(!secretEmail) throw new BadRequestException('Secret de verificação de email não encontrado');
+
+      const verificationToken = this.jwtService.sign(
+        { email: result.email },
+        { secret: secretEmail, expiresIn: '1d' },
+      );
+    
+      await this.emailService.sendVerificationEmail(
+        result.email, 
+        result.name, 
+        verificationToken
+      );
       return result
   }
 
@@ -60,7 +80,7 @@ export class UsersService {
       });
 
       if (existingUser && existingUser._id !== new ObjectId(id)) {
-        throw new BadRequestException('Este e-mail já está em uso.');
+        throw new BadRequestException('Este email já está em uso.');
       }
     }
     const user = await this.userRepository.findOneBy({ _id: new ObjectId(id) });
@@ -88,4 +108,20 @@ export class UsersService {
       deleted_at: new Date(),
     });
   }
+
+  async verifyUserEmail(email: string): Promise<void> {
+    const user = await this.userRepository.findOneBy({ email });
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+  
+    if (user.isVerified) return;
+  
+    await this.userRepository.updateOne(
+      { email },
+      { $set: { isVerified: true } },
+    );
+  }
+  
+
 }
