@@ -24,6 +24,9 @@ import {
   
     @Column({ nullable: true })
     avatar?: string;
+
+    @Column({ default: false })
+    isVerified: boolean;
   
     @CreateDateColumn({ type: 'timestamp' })
     created_at: Date;
