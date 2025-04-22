@@ -83,6 +83,9 @@ importers:
       typeorm:
         specifier: ^0.3.22
         version: 0.3.22(mongodb@6.15.0)(reflect-metadata@0.2.2)(ts-node@10.9.2(@swc/core@1.11.18)(@types/node@22.14.0)(typescript@5.8.3))
+      uuid:
+        specifier: ^11.1.0
+        version: 11.1.0
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.2.0
