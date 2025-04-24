@@ -15,6 +15,8 @@ import { GrokService } from './modules/grok/grok.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { IA_Agent } from './entities/agent.entity';
+import { Question } from './entities/question.entity';
 
 @Module({
   imports: [
@@ -38,6 +40,10 @@ import { AuthModule } from './modules/auth/auth.module';
       },
       inject: [ConfigService],
     }),
+    TypeOrmModule.forFeature([
+      IA_Agent, 
+      Question
+    ]),
 
     HttpModule.register({
       httpsAgent: new Agent({
