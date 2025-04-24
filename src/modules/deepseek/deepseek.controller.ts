@@ -13,8 +13,8 @@ export class DeepseekController {
       throw new HttpException('Pergunta não enviada ou inválida!', HttpStatus.BAD_REQUEST);
     }
     try {
-      const response = await this.deepSeekService.execute(question);
-      return { response };
+      const result = await this.deepSeekService.execute(question);
+      return result;
     } catch (error) {
       console.error('❌ Erro no controller ao consultar o Deepseek:', error);
       throw new HttpException('Erro ao consultar o Deepseek.', HttpStatus.INTERNAL_SERVER_ERROR);
