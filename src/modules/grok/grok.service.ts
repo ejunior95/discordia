@@ -14,7 +14,7 @@ export class GrokService {
     try {
       const response = await this.aiInstance.messages.create({
         model: 'grok-3-beta',
-        max_tokens: 2048,
+        max_tokens: 250,
         messages: [
           {
             role: 'assistant',
