@@ -19,8 +19,8 @@ export class ChatGptController {
                     message: 'Pergunta não enviada ou inválida!'
                 });    
             }
-            const response = await this.chatGptService.execute(question);
-            return res.status(HttpStatus.OK).json({ response });
+            const result = await this.chatGptService.execute(question);
+            return res.status(HttpStatus.OK).json(result);
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
         }
