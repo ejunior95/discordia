@@ -21,9 +21,7 @@ export class GrokController {
                 });    
             }
             const result = await this.grokService.execute(question);
-            return res.status(HttpStatus.OK).json({
-                response: result.text
-            });
+            return res.status(HttpStatus.OK).json(result);
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
         }
