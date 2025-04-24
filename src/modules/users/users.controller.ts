@@ -33,11 +33,14 @@ export class UsersController {
     private readonly emailService: EmailService,
   ) {}
 
+  @UseInterceptors(FileInterceptor('avatar', multerOptions))
   @Post()
-  async create(@Body() body: CreateUserDto): Promise<UserResponseDto> {
+  async create(
+    @Body() body: CreateUserDto,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<UserResponseDto> {
     try {
-      const user = await this.usersService.create(body);
-
+      const user = await this.usersService.create(body, file);
       return plainToInstance(UserResponseDto, user, { excludeExtraneousValues: true });
     } catch (error) {
       throw new InternalServerErrorException(`Erro ao criar usuário - ${error}`);
