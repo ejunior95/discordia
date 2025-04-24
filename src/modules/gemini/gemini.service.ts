@@ -18,6 +18,10 @@ export class GeminiService {
                 parts: [ { text: fullPrompt } ]
             },
         ],
+        config: {
+          maxOutputTokens: 250,
+          temperature: 0.7
+        }
       });
       return {
         response: text
