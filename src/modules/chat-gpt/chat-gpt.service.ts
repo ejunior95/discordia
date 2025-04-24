@@ -24,7 +24,9 @@ export class ChatGptService {
                 temperature: 0.7
               });
             
-            return response.choices[0].message.content;
+            return {
+              response: response.choices[0].message.content
+            };
         } catch (error) {
             console.error('Erro na chamada da OpenAI:', error);
             return error;
