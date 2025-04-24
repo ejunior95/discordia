@@ -15,7 +15,7 @@ export class DeepseekService {
     this.customContent = getCustomContent('deepseek');
   }
 
-  async execute(question: string): Promise<string> {
+  async execute(question: string) {
     const baseURL = this.configService.get<string>('DEEPSEEK_API_BASE_URL');
     const apiKey = this.configService.get<string>('DEEPSEEK_API_KEY');
 
@@ -56,7 +56,7 @@ export class DeepseekService {
         throw new InternalServerErrorException('Resposta vazia da Deepseek.');
       }
 
-      return answer;
+      return { response: answer };
     } catch (error) {
       console.error('❌ Erro na chamada Deepseek:', {
         status: error.response?.status,
