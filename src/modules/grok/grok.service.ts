@@ -27,7 +27,9 @@ export class GrokService {
         ],
         temperature: 0.7
       });
-      return response.content[0];
+      // @ts-ignore
+      const { text } = response.content[0]
+      return { response: text };
     } catch (error) {
       console.error('Erro na chamada do Grok:', error);
       return error;
