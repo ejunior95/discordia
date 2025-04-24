@@ -1,7 +1,24 @@
-import { Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { 
+    Body, 
+    Controller, 
+    Get, 
+    HttpException, 
+    HttpStatus, 
+    InternalServerErrorException, 
+    Param, 
+    Post, 
+    Put, 
+    Req, 
+    Res, 
+    UseGuards 
+} from '@nestjs/common';
 import { AppService } from './app.service';
 import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
+import { IA_Agent } from './entities/agent.entity';
+import { Question } from './entities/question.entity';
+import { CreateAgentDto } from './dtos/create-agent.dto';
+import { CreateQuestionDto } from './dtos/create-question.dto';
 
 const ALLOWED_AGENTS = ['deepseek', 'gemini', 'chat-gpt', 'grok'];
 
@@ -48,4 +65,74 @@ export class AppController {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
         };
     };
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/create-agent')
+  async createNewAgent(@Body() body: CreateAgentDto): Promise<IA_Agent> {
+    try {
+      return await this.appService.createAgent(body);
+    } catch (error) {
+      throw new InternalServerErrorException(`Erro ao criar agente de IA - ${error}`);
+    }
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/create-question')
+  async createNewQuestion(@Body() body: CreateQuestionDto): Promise<Question> {
+    try {
+      return await this.appService.createQuestion(body);
+    } catch (error) {
+      throw new InternalServerErrorException(`Erro ao salvar a pergunta - ${error}`);
+    }
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/find-all-agents')
+  async findAllAgents(): Promise<IA_Agent[]> {
+    try {
+      return await this.appService.findAllIaAgents();
+    } catch (error) {
+      throw new InternalServerErrorException(`Erro ao buscar agentes de IA - ${error}`);
+    }
+  }
+
+  
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/find-agent/:id')
+  async findOneAgent(@Param('id') id: string): Promise<IA_Agent> {
+    try {
+      const agent = await this.appService.findOnIaAgent(id);
+      if (!agent) {
+        throw new HttpException('Agente de IA não encontrado', 404);
+      }
+      return agent;
+    } catch (error) {
+      throw new InternalServerErrorException(`Erro ao buscar agente de IA - ${error}`);
+    }
+  }
+  
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/find-question')
+  async findQuestion(@Body() body: { question: string }): Promise<Question[]> {
+    try {
+      const { question } = body
+      return await this.appService.findAnswersByQuestion(question);
+    } catch (error) {
+      throw new InternalServerErrorException(`Erro ao buscar agente de IA - ${error}`);
+    }
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Put('/update-agent/:id')
+  async updateAgent(
+    @Param('id') id: string,
+    @Body() body: { score: number },
+  ): Promise<IA_Agent> {
+    try {
+      return await this.appService.updateIaAgent(id, body);
+    } catch (error) {
+      throw new InternalServerErrorException(`Erro ao atualizar agente de IA - ${error}`);
+    }
+  }
+
 }
