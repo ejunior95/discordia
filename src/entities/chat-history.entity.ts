@@ -1,7 +1,7 @@
 import { Entity, ObjectIdColumn, Column, ObjectId } from 'typeorm';
 
-@Entity()
-export class ConversationMessage {
+@Entity('chat-history')
+export class ChatHistory {
   @ObjectIdColumn()
   id: ObjectId;
 
