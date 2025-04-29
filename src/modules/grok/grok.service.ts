@@ -2,7 +2,11 @@ import Anthropic from '@anthropic-ai/sdk';
 import { MessageParam } from '@anthropic-ai/sdk/resources';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { IA_Agent } from 'src/entities/agent.entity';
+import { ConversationMessage } from 'src/entities/chat-history.entity';
 import { getCustomContent } from 'src/utils/getCustomContent';
+import { MongoRepository } from 'typeorm';
 
 @Injectable()
 export class GrokService {
@@ -13,6 +17,10 @@ export class GrokService {
   private readonly apiKey: string;
 
   constructor(
+    @InjectRepository(IA_Agent)
+    private readonly agentRepository: MongoRepository<IA_Agent>,
+    @InjectRepository(ConversationMessage)
+    private readonly conversationMessageRepository: MongoRepository<ConversationMessage>,
     private readonly configService: ConfigService,
   ) {
     this.apiKey = this.configService.get<string>('GROK_API_KEY') ?? '';
@@ -54,5 +62,33 @@ export class GrokService {
       });
       throw new Error('Erro na requisição para o Grok.');
     }
+  }
+  
+  async getRecentHistory(userId: string, limit: number) {
+    const messages = await this.conversationMessageRepository.find({
+      where: { user_id: userId },
+      order: { timestamp: 'DESC' },
+      take: limit,
+    });
+
+    return messages.reverse().map(msg => ({ role: msg.role, content: msg.content }));
+  }
+  
+  async saveMessage(userId: string, role: 'user' | 'assistant', content: string, agentName?: string) {
+    const agentId = agentName ? await this.getAgentIdByName(agentName) : undefined;
+    const message = this.conversationMessageRepository.create({
+      user_id: userId,
+      timestamp: new Date(),
+      role,
+      content,
+      agent_id: agentId,
+    });
+    await this.conversationMessageRepository.save(message);
+  }
+
+  async getAgentIdByName(name: string): Promise<string> {
+    const agent = await this.agentRepository.findOne({ where: { name } });
+    if (!agent) throw new Error(`Agente ${name} não encontrado`);
+    return agent._id.toString();
   }
 }
