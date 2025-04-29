@@ -7,10 +7,7 @@ import { UserResponseDto } from '../users/dtos/response-user.dto';
 
 @Controller('chat-gpt')
 export class ChatGptController {
-    constructor(
-        private readonly chatGptService: ChatGptService,
-        private readonly appService: AppService,
-    ) {}
+    constructor(private readonly chatGptService: ChatGptService) {}
 
     @UseGuards(AuthGuard('jwt'))
     @Post('/test-message')
@@ -25,10 +22,10 @@ export class ChatGptController {
                 });    
             }
 
-            const history = await this.appService.getRecentHistory(userId, 10);
+            const history = await this.chatGptService.getRecentHistory(userId, 10);
             const result = await this.chatGptService.execute(question, history);
-            await this.appService.saveMessage(userId, 'user', question);
-            await this.appService.saveMessage(
+            await this.chatGptService.saveMessage(userId, 'user', question);
+            await this.chatGptService.saveMessage(
                 userId, 
                 'assistant', 
                 result.response ? result.response : '', 
