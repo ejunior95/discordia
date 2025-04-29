@@ -2,16 +2,12 @@ import { Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/commo
 import { Request, Response } from 'express';
 import { GrokService } from './grok.service';
 import { AuthGuard } from '@nestjs/passport';
-import { AppService } from 'src/app.service';
 import { UserResponseDto } from '../users/dtos/response-user.dto';
 
 
 @Controller('grok')
 export class GrokController {
-    constructor(
-        private readonly grokService: GrokService,
-        private readonly appService: AppService,
-    ) {}
+    constructor(private readonly grokService: GrokService) {}
 
     @UseGuards(AuthGuard('jwt'))
     @Post('/test-message')
@@ -26,10 +22,10 @@ export class GrokController {
                 });    
             }
 
-            const history = await this.appService.getRecentHistory(userId, 10);
+            const history = await this.grokService.getRecentHistory(userId, 10);
             const result = await this.grokService.execute(question, history);
-            await this.appService.saveMessage(userId, 'user', question);
-            await this.appService.saveMessage(
+            await this.grokService.saveMessage(userId, 'user', question);
+            await this.grokService.saveMessage(
                 userId, 
                 'assistant', 
                 result.response ? result.response : '', 
