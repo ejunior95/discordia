@@ -1,16 +1,12 @@
-import { Body, Controller, HttpException, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, HttpException, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { DeepseekService } from './deepseek.service';
 import { AuthGuard } from '@nestjs/passport';
-import { AppService } from 'src/app.service';
 import { UserResponseDto } from '../users/dtos/response-user.dto';
 import { Request, Response } from 'express';
 
 @Controller('deepseek')
 export class DeepseekController {
-  constructor(
-    private readonly deepSeekService: DeepseekService,
-    private readonly appService: AppService,
-  ) {}
+  constructor(private readonly deepSeekService: DeepseekService) {}
 
   @UseGuards(AuthGuard('jwt'))
   @Post('/test-message')
@@ -24,10 +20,10 @@ export class DeepseekController {
             message: 'Pergunta não enviada ou inválida!'
         });    
       }
-      const history = await this.appService.getRecentHistory(userId, 10);
+      const history = await this.deepSeekService.getRecentHistory(userId, 10);
       const result = await this.deepSeekService.execute(question, history);
-      await this.appService.saveMessage(userId, 'user', question);
-      await this.appService.saveMessage(
+      await this.deepSeekService.saveMessage(userId, 'user', question);
+      await this.deepSeekService.saveMessage(
           userId, 
           'assistant', 
           result.response ? result.response : '', 
