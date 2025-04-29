@@ -3,6 +3,10 @@ import { DeepseekController } from './deepseek.controller';
 import { DeepseekService } from './deepseek.service';
 import { HttpModule } from '@nestjs/axios';
 import { Agent } from 'https';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { IA_Agent } from 'src/entities/agent.entity';
+import { Question } from 'src/entities/question.entity';
+import { ConversationMessage } from 'src/entities/chat-history.entity';
 
 @Module({
   imports: [
@@ -11,7 +15,12 @@ import { Agent } from 'https';
         requestCert: true,
         rejectUnauthorized: true
       }),
-    })
+    }),
+    TypeOrmModule.forFeature([
+      IA_Agent, 
+      Question,
+      ConversationMessage,
+    ]),
   ],
   controllers: [DeepseekController],
   providers: [DeepseekService]
