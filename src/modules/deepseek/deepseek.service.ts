@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { lastValueFrom } from 'rxjs';
 import { IA_Agent } from 'src/entities/agent.entity';
-import { ConversationMessage } from 'src/entities/chat-history.entity';
+import { ChatHistory } from 'src/entities/chat-history.entity';
 import { getCustomContent } from 'src/utils/getCustomContent';
 import { MongoRepository } from 'typeorm';
 
@@ -18,8 +18,8 @@ export class DeepseekService {
   constructor(
     @InjectRepository(IA_Agent)
     private readonly agentRepository: MongoRepository<IA_Agent>,
-    @InjectRepository(ConversationMessage)
-    private readonly conversationMessageRepository: MongoRepository<ConversationMessage>,
+    @InjectRepository(ChatHistory)
+    private readonly chatHistoryRepository: MongoRepository<ChatHistory>,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
@@ -85,7 +85,7 @@ export class DeepseekService {
   }
   
   async getRecentHistory(userId: string, limit: number) {
-    const messages = await this.conversationMessageRepository.find({
+    const messages = await this.chatHistoryRepository.find({
       where: { user_id: userId },
       order: { timestamp: 'DESC' },
       take: limit,
@@ -96,14 +96,14 @@ export class DeepseekService {
   
   async saveMessage(userId: string, role: 'user' | 'assistant', content: string, agentName?: string) {
     const agentId = agentName ? await this.getAgentIdByName(agentName) : undefined;
-    const message = this.conversationMessageRepository.create({
+    const message = this.chatHistoryRepository.create({
       user_id: userId,
       timestamp: new Date(),
       role,
       content,
       agent_id: agentId,
     });
-    await this.conversationMessageRepository.save(message);
+    await this.chatHistoryRepository.save(message);
   }
 
   async getAgentIdByName(name: string): Promise<string> {
