@@ -19,6 +19,7 @@ import { IA_Agent } from './entities/agent.entity';
 import { Question } from './entities/question.entity';
 import { CreateAgentDto } from './dtos/create-agent.dto';
 import { CreateQuestionDto } from './dtos/create-question.dto';
+import { UserResponseDto } from './modules/users/dtos/response-user.dto';
 
 const ALLOWED_AGENTS = ['deepseek', 'gemini', 'chat-gpt', 'grok'];
 
@@ -28,15 +29,16 @@ export class AppController {
 
   @UseGuards(AuthGuard('jwt'))
   @Post('/ask-to-all')
-    async askToAllAgents(@Req() req: Request, @Res() res: Response) {
+    async askToAllAgents(@Req() req: Request & { user: UserResponseDto }, @Res() res: Response) {
         try {
             const { question } = req.body;
+            const userId = req.user?.id;
             if (!question || !isNaN(question)) {
                 return res.status(HttpStatus.BAD_REQUEST).json({
                     message: 'Pergunta não enviada ou inválida!',
                 });    
             };
-            const result = await this.appService.askToAll(question);
+            const result = await this.appService.askToAll(question, userId);
             return res.status(HttpStatus.OK).json(result);
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
