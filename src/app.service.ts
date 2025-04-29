@@ -106,14 +106,15 @@ export class AppService {
     return agent._id.toString();
   }
   
-
-  async askToOne(question: string, agent: string) {
+  async askToOne(question: string, agent: string, userId: string) {
     try {
+      const history = await this.getRecentHistory(userId, 10);
+
       const agentExecutors = {
-        // 'deepseek': async () => await this.deepseekService.execute(question),
-        // 'gemini': async () => await this.geminiService.execute(question),
-        // 'chat-gpt': async () => await this.chatGptService.execute(question),
-        // 'grok': async () => await this.grokService.execute(question)
+        'deepseek': async () => await this.deepseekService.execute(question, history),
+        'gemini': async () => await this.geminiService.execute(question, history),
+        'chat-gpt': async () => await this.chatGptService.execute(question, history),
+        'grok': async () => await this.grokService.execute(question, history)
       };
   
       const executor = agentExecutors[agent];
@@ -121,8 +122,12 @@ export class AppService {
       if (!executor) {
         throw new Error(`Agente de IA "${agent}" não é suportado.`);
       }
-  
+
       const result = await executor();
+
+      await this.saveMessage(userId, 'user', question);
+      this.saveMessage(userId, 'assistant', result?.response, agent);
+
       return { [agent]: result };
   
     } catch (error) {
@@ -148,7 +153,6 @@ export class AppService {
     return await this.questionRepository.save(question);
   }
   
-
   async findAllIaAgents(): Promise<IA_Agent[]> {
     return this.agentRepository.find({
       where: { deleted_at: null },
