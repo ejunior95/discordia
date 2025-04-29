@@ -24,7 +24,7 @@ export class DeepseekService {
     this.customContent = getCustomContent('deepseek');
   }
 
-  async execute(question: string, history: { role: "user" | "assistant"; content: string; }[]) {
+  async execute(question: string, history: { role: "user" | "assistant"; content: string; }[]): Promise<{ response: string }> {
     if (!this.baseURL || !this.apiKey) {
       console.error('Deepseek config ausente:', { baseURL: this.baseURL, apiKey: this.apiKey });
       throw new InternalServerErrorException('Configuração da API Deepseek ausente.');
