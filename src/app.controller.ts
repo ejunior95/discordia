@@ -47,9 +47,10 @@ export class AppController {
 
   @UseGuards(AuthGuard('jwt'))
   @Post('/ask-to-one')
-    async askToOnlyOneAgent(@Req() req: Request, @Res() res: Response) {
+    async askToOnlyOneAgent(@Req() req: Request & { user: UserResponseDto }, @Res() res: Response) {
         try {
             const { question, agent } = req.body;
+            const userId = req.user?.id;
             if (!question || !isNaN(question)) {
                 return res.status(HttpStatus.BAD_REQUEST).json({
                     message: 'Pergunta não enviada ou inválida!',
@@ -61,7 +62,7 @@ export class AppController {
                     supported_agents: ALLOWED_AGENTS,
                 });    
             };
-            const result = await this.appService.askToOne(question, agent);
+            const result = await this.appService.askToOne(question, agent, userId);
             return res.status(HttpStatus.OK).json(result);
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
