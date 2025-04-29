@@ -17,7 +17,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { IA_Agent } from './entities/agent.entity';
 import { Question } from './entities/question.entity';
-import { ConversationMessage } from './entities/chat-history.entity';
+import { ChatHistory } from './entities/chat-history.entity';
 
 @Module({
   imports: [
@@ -44,7 +44,7 @@ import { ConversationMessage } from './entities/chat-history.entity';
     TypeOrmModule.forFeature([
       IA_Agent, 
       Question,
-      ConversationMessage,
+      ChatHistory,
     ]),
     HttpModule.register({
       httpsAgent: new Agent({
