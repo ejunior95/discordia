@@ -10,6 +10,7 @@ import { MongoServerError, ObjectId } from 'mongodb';
 import { Question } from './entities/question.entity';
 import { CreateAgentDto } from './dtos/create-agent.dto';
 import { CreateQuestionDto } from './dtos/create-question.dto';
+import { ConversationMessage } from './entities/chat-history.entity';
 
 @Injectable()
 export class AppService {
@@ -18,71 +19,101 @@ export class AppService {
     private readonly agentRepository: MongoRepository<IA_Agent>,
     @InjectRepository(Question)
     private readonly questionRepository: MongoRepository<Question>,
+    @InjectRepository(ConversationMessage)
+    private readonly conversationMessageRepository: MongoRepository<ConversationMessage>,
     private readonly chatGptService: ChatGptService,
     private readonly deepseekService: DeepseekService,
     private readonly geminiService: GeminiService,
     private readonly grokService: GrokService,
   ) {}
 
-  async askToAll(question: string) {
+  async askToAll(question: string, userId: string) {
     try {
-      const verifyQuestionExists = await this.findAnswersByQuestion(question);
+      const history = await this.getRecentHistory(userId, 10);
   
-      if (verifyQuestionExists.length) {
-        const result = {};
-        for (const answer of verifyQuestionExists) {
-          const agent = await this.findOnIaAgent(answer.agent_id.toString());
-          if(agent)
-            result[agent.name] = { response: answer.answer };
-        }
-        return result;
-      }
-
       const [geminiRes, deepseekRes, chatGptRes, grokRes] = await Promise.all([
-        this.geminiService.execute(question),
-        this.deepseekService.execute(question),
-        this.chatGptService.execute(question),
-        this.grokService.execute(question),
+        this.geminiService.execute(question, history),
+        this.deepseekService.execute(question, history),
+        this.chatGptService.execute(question, history),
+        this.grokService.execute(question, history),
       ]);
-      
-      const responses = {
-        'gemini': geminiRes.response,
-        'deepseek': deepseekRes.response,
-        'chat-gpt': chatGptRes.response,
-        'grok': grokRes.response,
-      };
-      
-      const allIaAgents = await this.findAllIaAgents();
-      await Promise.all(
-        allIaAgents.map(agent =>
-          this.createQuestion({
-            question,
-            answer: responses[agent.name],
-            agent_id: agent._id.toString(),
-          })
-        )
-      );
-      
+  
+      await this.saveMessage(userId, 'user', question);
+      await Promise.all([
+        this.saveMessage(
+          userId, 
+          'assistant', 
+          geminiRes.response ? geminiRes.response : '', 
+          'gemini'
+        ),
+        this.saveMessage(
+          userId, 
+          'assistant', 
+          deepseekRes.response, 
+          'deepseek'
+        ),
+        this.saveMessage(
+          userId, 
+          'assistant', 
+          chatGptRes.response ? chatGptRes.response : '', 
+          'chat-gpt'
+        ),
+        this.saveMessage(
+          userId, 
+          'assistant', 
+          grokRes.response, 
+          'grok'
+        ),
+      ]);
+  
       return {
-        'chat-gpt': { response: chatGptRes.response },
         'gemini': { response: geminiRes.response },
         'deepseek': { response: deepseekRes.response },
+        'chat-gpt': { response: chatGptRes.response },
         'grok': { response: grokRes.response },
-      };      
+      };
     } catch (error) {
-      console.error('Erro no retorno em um ou mais dos agentes: ', error);
-      return error;
+      console.error('Erro no askToAll:', error);
+      throw error;
     }
+  }
+  
+  async getRecentHistory(userId: string, limit: number) {
+    const messages = await this.conversationMessageRepository.find({
+      where: { user_id: userId },
+      order: { timestamp: 'DESC' },
+      take: limit,
+    });
+
+    return messages.reverse().map(msg => ({ role: msg.role, content: msg.content }));
+  }
+  
+  async saveMessage(userId: string, role: 'user' | 'assistant', content: string, agentName?: string) {
+    const agentId = agentName ? await this.getAgentIdByName(agentName) : undefined;
+    const message = this.conversationMessageRepository.create({
+      user_id: userId,
+      timestamp: new Date(),
+      role,
+      content,
+      agent_id: agentId,
+    });
+    await this.conversationMessageRepository.save(message);
+  }
+
+  async getAgentIdByName(name: string): Promise<string> {
+    const agent = await this.agentRepository.findOne({ where: { name } });
+    if (!agent) throw new Error(`Agente ${name} não encontrado`);
+    return agent._id.toString();
   }
   
 
   async askToOne(question: string, agent: string) {
     try {
       const agentExecutors = {
-        'deepseek': async () => await this.deepseekService.execute(question),
-        'gemini': async () => await this.geminiService.execute(question),
-        'chat-gpt': async () => await this.chatGptService.execute(question),
-        'grok': async () => await this.grokService.execute(question)
+        // 'deepseek': async () => await this.deepseekService.execute(question),
+        // 'gemini': async () => await this.geminiService.execute(question),
+        // 'chat-gpt': async () => await this.chatGptService.execute(question),
+        // 'grok': async () => await this.grokService.execute(question)
       };
   
       const executor = agentExecutors[agent];
