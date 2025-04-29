@@ -19,7 +19,7 @@ export class ChatGptService {
     this.aiInstance = new OpenAI({ apiKey });
   }
 
-  async execute(question: string, history: { role: 'user' | 'assistant'; content: string }[]) {
+  async execute(question: string, history: { role: 'user' | 'assistant'; content: string }[]): Promise<{ response: string }> {
     try {
       const messages: ChatCompletionMessageParam[] = [
         { role: 'system', content: this.customContent },
@@ -35,7 +35,7 @@ export class ChatGptService {
       });
 
       const assistantReply = response.choices[0].message.content;
-      return { response: assistantReply };
+      return { response: assistantReply ? assistantReply : '' };
     } catch (error) {
       console.error('Erro na chamada do ChatGPT:', error);
       throw error;
