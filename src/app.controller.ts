@@ -6,8 +6,8 @@ import {
     HttpStatus, 
     InternalServerErrorException, 
     Param, 
-    Post, 
-    Put, 
+    Patch, 
+    Post,
     Req, 
     Res, 
     UseGuards 
@@ -126,7 +126,7 @@ export class AppController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Put('/update-agent/:id')
+  @Patch('/update-agent/:id')
   async updateAgent(
     @Param('id') id: string,
     @Body() body: { score: number },
