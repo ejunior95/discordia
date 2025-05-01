@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MongoRepository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { EmailService } from 'src/shared/email.service';
 import { ConfigService } from '@nestjs/config';
 import { S3Service } from 'src/shared/s3.service';
+import { compare } from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
@@ -60,7 +61,6 @@ export class UsersService {
     return result;
   }
   
-
   async findAll(): Promise<User[]> {
     return this.userRepository.find({
       where: { deleted_at: null },
@@ -77,7 +77,6 @@ export class UsersService {
     if (!user) throw new NotFoundException('Usuário não encontrado');
     return user;
   }
-  
 
   async findByEmail(email: string): Promise<User> {
     const user = await this.userRepository.findOneBy({ email });
@@ -87,30 +86,45 @@ export class UsersService {
     return user;
   }
 
-  async update(id: string, data: UpdateUserDto) {
-    if (data.email) {
-      const existingUser = await this.userRepository.findOne({
-        where: { email: data.email },
-        withDeleted: true,
-      });
-
-      if (existingUser && existingUser._id !== new ObjectId(id)) {
-        throw new BadRequestException('Este email já está em uso.');
-      }
-    }
+  async update(id: string, data: UpdateUserDto, file?: Express.Multer.File) {
     const user = await this.userRepository.findOneBy({ _id: new ObjectId(id) });
   
     if (!user) {
       throw new NotFoundException('Usuário não encontrado');
     }
-    if (data.password) {
-      data.password = await hashPassword(data.password);
+  
+    if (data.email && data.email !== user.email) {
+      const existingUser = await this.userRepository.findOne({
+        where: { email: data.email },
+        withDeleted: true,
+      });
+  
+      if (existingUser && existingUser._id.toString() !== id) {
+        throw new BadRequestException('Este email já está em uso.');
+      }
+      user.email = data.email;
     }
   
-    Object.assign(user, data);
+    if (data.name && data.name !== user.name) {
+      user.name = data.name;
+    }
+
+    if (data.currentPassword && data.password) {
+      const isMatch = await compare(data.currentPassword, user.password);
+      if (!isMatch) {
+        throw new BadRequestException('Senha atual incorreta.');
+      }
+      user.password = await hashPassword(data.password);
+    }
+    
+    if (file) {
+      const url = await this.s3Service.uploadFile(file, `avatars/${id}`);
+      user.avatar = url;
+    }
+  
     return this.userRepository.save(user);
   }
-
+  
   async remove(id: string): Promise<void> {
     const user = await this.userRepository.findOne({
       where: {
@@ -137,6 +151,4 @@ export class UsersService {
       { $set: { isVerified: true } },
     );
   }
-  
-
 }
