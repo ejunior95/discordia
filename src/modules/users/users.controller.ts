@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Put,
   Delete,
   Patch,
   Param,
@@ -75,16 +74,22 @@ export class UsersController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Put(':id')
+  @Patch(':id')
+  @UseInterceptors(FileInterceptor('avatar'))
   async update(
     @Param('id') id: string,
     @Body() body: UpdateUserDto,
+    @UploadedFile() file?: Express.Multer.File,
   ): Promise<UserResponseDto> {
     try {
-      const user = await this.usersService.update(id, body);
-      return plainToInstance(UserResponseDto, user, { excludeExtraneousValues: true });
+      const updatedUser = await this.usersService.update(id, body, file);
+      return plainToInstance(UserResponseDto, updatedUser, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao atualizar usuário - ${error}`);
+      throw new InternalServerErrorException(
+        `Erro ao atualizar usuário - ${error?.message || error}`,
+      );
     }
   }
 
