@@ -29,7 +29,7 @@ export class DeepseekService {
       this.logger.error('DEEPSEEK_API_KEY não configurada');
       throw new Error('Configuração da API Deepseek ausente.');
     }
-    this.customContent = getCustomContent('deepseek');
+    this.customContent = getCustomContent('deepseek', 'chat');
   }
 
   async execute(question: string, history: { role: "user" | "assistant"; content: string; }[]): Promise<{ response: string }> {
