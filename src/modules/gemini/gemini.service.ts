@@ -11,7 +11,7 @@ import { IA_Agent } from 'src/entities/agent.entity';
 export class GeminiService {
   private readonly logger = new Logger(GeminiService.name);
   private aiInstance: GoogleGenAI;
-  private customContent = getCustomContent('gemini');
+  private customContent = getCustomContent('gemini', 'chat');
 
   constructor(
     @InjectRepository(IA_Agent)
