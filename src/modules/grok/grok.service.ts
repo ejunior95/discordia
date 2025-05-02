@@ -33,7 +33,7 @@ export class GrokService {
       apiKey: this.apiKey,
       baseURL: this.baseURL
     });
-    this.customContent = getCustomContent('grok');
+    this.customContent = getCustomContent('grok', 'chat');
   }
 
   async execute(question: string, history: { role: "user" | "assistant"; content: string; }[]): Promise<{ response: string }> {
