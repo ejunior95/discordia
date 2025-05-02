@@ -12,7 +12,7 @@ import { ChatHistory } from 'src/entities/chat-history.entity';
 export class ChatGptService {
   private readonly logger = new Logger(ChatGptService.name);
   private aiInstance: OpenAI;
-  private customContent = getCustomContent('chat-gpt');
+  private customContent = getCustomContent('chat-gpt', 'chat');
 
   constructor(
     @InjectRepository(IA_Agent)
