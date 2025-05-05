@@ -1,4 +1,5 @@
-export function getCustomContent(currentAi: string, type: 'chat' | 'chess' | 'hangman-chooser' | 'hangman-guesser' | 'jokenpo' | 'rpg' | 'rap-battle') {
+export function getCustomContent(type: 'chat' | 'chess' | 'hangman-chooser' | 'hangman-guesser' | 'jokenpo' | 'rpg' | 'rap-battle', currentAi?: string) {
+
   const contentsChat: Record<string, string> = {
     gemini: 'Você é a inteligência artificial Gemini do Google. Você está competindo com outras IAs, de vez em quando faça uma provocação para suas adversárias (Deepseek, ChatGPT e Grok). Sua missão é gerar a MELHOR resposta possível, clara, criativa e precisa, mas sem respostas muito longas! Sua resposta será avaliada pelo usuário, dê o seu melhor para vencer!',
     deepseek: 'Você é a inteligência artificial Deepseek. Você está competindo com outras IAs, de vez em quando faça uma provocação para suas adversárias (Gemini, ChatGPT e Grok). Sua missão é gerar a MELHOR resposta possível, clara, criativa e precisa, mas sem respostas muito longas! Sua resposta será avaliada pelo usuário, dê o seu melhor para vencer!',
@@ -7,31 +8,19 @@ export function getCustomContent(currentAi: string, type: 'chat' | 'chess' | 'ha
   };
   
   const contentsGamesJokenpo: Record<string, string> = {
-    gemini: 'Você está jogando Jokenpo. Responda SOMENTE com uma sequência de 3 jogadas: "pedra", "papel" ou "tesoura", separadas por vírgulas, como "pedra, papel, tesoura". Não diga mais nada.',
-    deepseek: 'Você está jogando Jokenpo. Responda SOMENTE com uma sequência de 3 jogadas: "pedra", "papel" ou "tesoura", separadas por vírgulas, como "pedra, papel, tesoura". Não diga mais nada.',
-    'chat-gpt': 'Você está jogando Jokenpo. Responda SOMENTE com uma sequência de 3 jogadas: "pedra", "papel" ou "tesoura", separadas por vírgulas, como "pedra, papel, tesoura". Não diga mais nada.',
-    grok: 'Você está jogando Jokenpo. Responda SOMENTE com uma sequência de 3 jogadas: "pedra", "papel" ou "tesoura", separadas por vírgulas, como "pedra, papel, tesoura". Não diga mais nada.',
+    standart: 'Você está jogando Jokenpo. Responda SOMENTE com uma sequência de 3 jogadas: "pedra", "papel" ou "tesoura", separadas por vírgulas, como "pedra, papel, tesoura". Não diga mais nada.',
   };
   
   const contentsGamesChess: Record<string, string> = {
-    gemini: 'Você está jogando xadrez em um tabuleiro 8x8 (colunas A-H, linhas 1-8). Receberá a jogada do jogador no formato "posição inicial para posição final", como "B2 para C4". Responda SOMENTE com a posição inicial e final da peça que você quer mover, no mesmo formato, como "E2 para E4". Não diga mais nada.',
-    deepseek: 'Você está jogando xadrez em um tabuleiro 8x8 (colunas A-H, linhas 1-8). Receberá a jogada do jogador no formato "posição inicial para posição final", como "B2 para C4". Responda SOMENTE com a posição inicial e final da peça que você quer mover, no mesmo formato, como "E2 para E4". Não diga mais nada.',
-    'chat-gpt': 'Você está jogando xadrez em um tabuleiro 8x8 (colunas A-H, linhas 1-8). Receberá a jogada do jogador no formato "posição inicial para posição final", como "B2 para C4". Responda SOMENTE com a posição inicial e final da peça que você quer mover, no mesmo formato, como "E2 para E4". Não diga mais nada.',
-    grok: 'Você está jogando xadrez em um tabuleiro 8x8 (colunas A-H, linhas 1-8). Receberá a jogada do jogador no formato "posição inicial para posição final", como "B2 para C4". Responda SOMENTE com a posição inicial e final da peça que você quer mover, no mesmo formato, como "E2 para E4". Não diga mais nada.',
+    standart: 'Você está jogando xadrez em um tabuleiro 8x8 (colunas A-H, linhas 1-8). Receberá a jogada do jogador no formato "posição inicial para posição final", como "B2 para C4". Responda SOMENTE com a posição inicial e final da peça que você quer mover, no mesmo formato, como "E2 para E4". Não diga mais nada.',
   };
   
   const contentsGamesHangmanChooser: Record<string, string> = {
-    gemini: 'Você está jogando Forca e deve escolher a palavra. Receberá o tema da palavra. Na primeira jogada, responda SOMENTE com a quantidade de caracteres da palavra que você escolheu. Depois, para cada letra que o jogador enviar, responda SOMENTE com as posições (a partir de 1) onde a letra aparece na palavra, separadas por vírgulas, ou "Não tem essa letra" se a letra não estiver na palavra. Não diga mais nada.',
-    deepseek: 'Você está jogando Forca e deve escolher a palavra. Receberá o tema da palavra. Na primeira jogada, responda SOMENTE com a quantidade de caracteres da palavra que você escolheu. Depois, para cada letra que o jogador enviar, responda SOMENTE com as posições (a partir de 1) onde a letra aparece na palavra, separadas por vírgulas, ou "Não tem essa letra" se a letra não estiver na palavra. Não diga mais nada.',
-    'chat-gpt': 'Você está jogando Forca e deve escolher a palavra. Receberá o tema da palavra. Na primeira jogada, responda SOMENTE com a quantidade de caracteres da palavra que você escolheu. Depois, para cada letra que o jogador enviar, responda SOMENTE com as posições (a partir de 1) onde a letra aparece na palavra, separadas por vírgulas, ou "Não tem essa letra" se a letra não estiver na palavra. Não diga mais nada.',
-    grok: 'Você está jogando Forca e deve escolher a palavra. Receberá o tema da palavra. Na primeira jogada, responda SOMENTE com a quantidade de caracteres da palavra que você escolheu. Depois, para cada letra que o jogador enviar, responda SOMENTE com as posições (a partir de 1) onde a letra aparece na palavra, separadas por vírgulas, ou "Não tem essa letra" se a letra não estiver na palavra. Não diga mais nada.',
+    standart: 'Você está jogando Forca e VOCÊ DEVE ESCOLHER uma palavra, que exista e que tenha a ver com o tema passado. NÃO ME DIGA QUAL É A PALAVRA, até que eu descubra! No inicio você receberá o tema da palavra. Na primeira jogada, responda SOMENTE com a quantidade de caracteres da palavra que você escolheu. Depois, para cada letra que o jogador enviar, responda SOMENTE com as posições (a partir de 1) onde a letra aparece na palavra, separadas por vírgulas, ou "Não tem essa letra" se a letra não estiver na palavra. NÃO DIGA MAIS NADA!',
   };
   
   const contentsGamesHangmanGuesser: Record<string, string> = {
-    gemini: 'Você está jogando Forca e deve adivinhar a palavra. Receberá a quantidade de caracteres da palavra e o tema. Responda SOMENTE com uma letra por vez. Se receber "Não tem essa letra", tente outra letra. Não diga mais nada.',
-    deepseek: 'Você está jogando Forca e deve adivinhar a palavra. Receberá a quantidade de caracteres da palavra e o tema. Responda SOMENTE com uma letra por vez. Se receber "Não tem essa letra", tente outra letra. Não diga mais nada.',
-    'chat-gpt': 'Você está jogando Forca e deve adivinhar a palavra. Receberá a quantidade de caracteres da palavra e o tema. Responda SOMENTE com uma letra por vez. Se receber "Não tem essa letra", tente outra letra. Não diga mais nada.',
-    grok: 'Você está jogando Forca e deve adivinhar a palavra. Receberá a quantidade de caracteres da palavra e o tema. Responda SOMENTE com uma letra por vez. Se receber "Não tem essa letra", tente outra letra. Não diga mais nada.',
+    standart: 'Você está jogando Forca e deve adivinhar a palavra. Receberá a quantidade de caracteres da palavra e o tema. Responda SOMENTE com uma letra por vez ou SOMENTE a palavra completa, se conseguir deduzir qual é a palavra. Tente adivinhar a palavra antes de mandar todas as letras! Se receber "Não tem essa letra", tente outra letra. Se receber "Não é essa palavra", você perdeu. NÃO DIGA MAIS NADA!',
   };
   
   const contentsRapBattle: Record<string, string> = {
@@ -42,27 +31,27 @@ export function getCustomContent(currentAi: string, type: 'chat' | 'chess' | 'ha
   };
   
   const contentsRPG: Record<string, string> = {
-    gemini: 'Você está em um RPG. Se for o mestre, crie e adapte a história baseada nas ações dos personagens, respondendo SOMENTE com a narrativa atualizada. Se for personagem, receba a situação do mestre e responda SOMENTE com sua ação. Não diga mais nada.',
-    deepseek: 'Você está em um RPG. Se for o mestre, crie e adapte a história baseada nas ações dos personagens, respondendo SOMENTE com a narrativa atualizada. Se for personagem, receba a situação do mestre e responda SOMENTE com sua ação. Não diga mais nada.',
-    'chat-gpt': 'Você está em um RPG. Se for o mestre, crie e adapte a história baseada nas ações dos personagens, respondendo SOMENTE com a narrativa atualizada. Se for personagem, receba a situação do mestre e responda SOMENTE com sua ação. Não diga mais nada.',
-    grok: 'Você está em um RPG. Se for o mestre, crie e adapte a história baseada nas ações dos personagens, respondendo SOMENTE com a narrativa atualizada. Se for personagem, receba a situação do mestre e responda SOMENTE com sua ação. Não diga mais nada.',
+    gemini: 'Você é Gemini e está em um RPG. Se for o mestre, crie e adapte a história baseada nas ações dos personagens, respondendo SOMENTE com a narrativa atualizada. Se for personagem, receba a situação do mestre e responda SOMENTE com sua ação. Não diga mais nada.',
+    deepseek: 'Você é Deepseek e está em um RPG. Se for o mestre, crie e adapte a história baseada nas ações dos personagens, respondendo SOMENTE com a narrativa atualizada. Se for personagem, receba a situação do mestre e responda SOMENTE com sua ação. Não diga mais nada.',
+    'chat-gpt': 'Você é ChatGPT e está em um RPG. Se for o mestre, crie e adapte a história baseada nas ações dos personagens, respondendo SOMENTE com a narrativa atualizada. Se for personagem, receba a situação do mestre e responda SOMENTE com sua ação. Não diga mais nada.',
+    grok: 'Você é Grok e está em um RPG. Se for o mestre, crie e adapte a história baseada nas ações dos personagens, respondendo SOMENTE com a narrativa atualizada. Se for personagem, receba a situação do mestre e responda SOMENTE com sua ação. Não diga mais nada.',
   };
 
   switch (type) {
     case 'chat':
-      return contentsChat[currentAi];
+      return contentsChat[currentAi!];
     case 'chess':
-      return contentsGamesChess[currentAi];
+      return contentsGamesChess.standart;
     case 'hangman-chooser':
-      return contentsGamesHangmanChooser[currentAi];
+      return contentsGamesHangmanChooser.standart;
     case 'hangman-guesser':
-      return contentsGamesHangmanGuesser[currentAi];
+      return contentsGamesHangmanGuesser.standart;
     case 'jokenpo':
-      return contentsGamesJokenpo[currentAi];
+      return contentsGamesJokenpo.standart;
     case 'rpg':
-      return contentsRPG[currentAi];
+      return contentsRPG[currentAi!];
     case 'rap-battle':
-      return contentsRapBattle[currentAi];
+      return contentsRapBattle[currentAi!];
     default:
       return '';
   }
