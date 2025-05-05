@@ -32,10 +32,10 @@ export class AppService {
       const history = await this.getRecentHistory(userId, 10);
   
       const [geminiRes, deepseekRes, chatGptRes, grokRes] = await Promise.all([
-        this.geminiService.execute(question, history),
-        this.deepseekService.execute(question, history),
-        this.chatGptService.execute(question, history),
-        this.grokService.execute(question, history),
+        this.geminiService.execute('chat', question, history),
+        this.deepseekService.execute('chat', question, history),
+        this.chatGptService.execute('chat', question, history),
+        this.grokService.execute('chat', question, history),
       ]);
   
       await this.saveMessage(userId, 'user', question);
@@ -77,6 +77,36 @@ export class AppService {
       throw error;
     }
   }
+
+  async askToOne(question: string, agent: string, userId: string) {
+    try {
+      const history = await this.getRecentHistory(userId, 10);
+
+      const agentExecutors = {
+        'deepseek': async () => await this.deepseekService.execute('chat',question, history),
+        'gemini': async () => await this.geminiService.execute('chat',question, history),
+        'chat-gpt': async () => await this.chatGptService.execute('chat',question, history),
+        'grok': async () => await this.grokService.execute('chat',question, history)
+      };
+  
+      const executor = agentExecutors[agent];
+  
+      if (!executor) {
+        throw new Error(`Agente de IA "${agent}" não é suportado.`);
+      }
+
+      const result = await executor();
+
+      await this.saveMessage(userId, 'user', question);
+      this.saveMessage(userId, 'assistant', result?.response, agent);
+
+      return { [agent]: result };
+  
+    } catch (error) {
+      console.error('Erro no askToOne:', error);
+      return { error: error.message || 'Erro interno' };
+    }
+  }
   
   async getRecentHistory(userId: string, limit: number) {
     const messages = await this.chatHistoryRepository.find({
@@ -106,15 +136,20 @@ export class AppService {
     return agent._id.toString();
   }
   
-  async askToOne(question: string, agent: string, userId: string) {
+  async hangmanGame(
+    typeContext: "hangman-chooser" | "hangman-guesser",  
+    question: string,
+    agent: string, 
+    userId: string,
+    ) {
     try {
-      const history = await this.getRecentHistory(userId, 10);
+      const history = await this.getRecentHistory(userId, 8);
 
       const agentExecutors = {
-        'deepseek': async () => await this.deepseekService.execute(question, history),
-        'gemini': async () => await this.geminiService.execute(question, history),
-        'chat-gpt': async () => await this.chatGptService.execute(question, history),
-        'grok': async () => await this.grokService.execute(question, history)
+        'deepseek': async () => await this.deepseekService.execute(typeContext, question, history),
+        'gemini': async () => await this.geminiService.execute(typeContext, question, history),
+        'chat-gpt': async () => await this.chatGptService.execute(typeContext, question, history),
+        'grok': async () => await this.grokService.execute(typeContext, question, history)
       };
   
       const executor = agentExecutors[agent];
