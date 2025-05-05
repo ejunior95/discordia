@@ -23,7 +23,7 @@ export class ChatGptController {
             }
 
             const history = await this.chatGptService.getRecentHistory(userId, 10);
-            const result = await this.chatGptService.execute(question, history);
+            const result = await this.chatGptService.execute('chat', question, history);
             await this.chatGptService.saveMessage(userId, 'user', question);
             await this.chatGptService.saveMessage(
                 userId, 
