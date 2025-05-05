@@ -21,7 +21,7 @@ export class DeepseekController {
         });    
       }
       const history = await this.deepSeekService.getRecentHistory(userId, 10);
-      const result = await this.deepSeekService.execute(question, history);
+      const result = await this.deepSeekService.execute('chat', question, history);
       await this.deepSeekService.saveMessage(userId, 'user', question);
       await this.deepSeekService.saveMessage(
           userId, 
