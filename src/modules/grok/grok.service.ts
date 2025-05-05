@@ -12,9 +12,9 @@ import { MongoRepository } from 'typeorm';
 export class GrokService {
   private readonly logger = new Logger(GrokService.name);
   private readonly aiInstance: Anthropic;
-  private readonly customContent: string;
   private readonly baseURL: string;
   private readonly apiKey: string;
+  private customContent: string;
 
   constructor(
     @InjectRepository(IA_Agent)
@@ -33,11 +33,14 @@ export class GrokService {
       apiKey: this.apiKey,
       baseURL: this.baseURL
     });
-    this.customContent = getCustomContent('grok', 'chat');
   }
 
-  async execute(question: string, history: { role: "user" | "assistant"; content: string; }[]): Promise<{ response: string }> {
+  async execute(
+    typeContext: "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle", 
+    question: string, 
+    history: { role: "user" | "assistant"; content: string; }[]): Promise<{ response: string }> {
     try {
+      this.customContent = getCustomContent(typeContext,'grok');
       const messages: MessageParam[] = [
         ...history,
         { role: 'user', content: question },
