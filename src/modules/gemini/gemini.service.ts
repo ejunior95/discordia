@@ -11,7 +11,7 @@ import { IA_Agent } from 'src/entities/agent.entity';
 export class GeminiService {
   private readonly logger = new Logger(GeminiService.name);
   private aiInstance: GoogleGenAI;
-  private customContent = getCustomContent('gemini');
+  private customContent: string;
 
   constructor(
     @InjectRepository(IA_Agent)
@@ -28,8 +28,12 @@ export class GeminiService {
     this.aiInstance = new GoogleGenAI({apiKey});
   }
 
-  async execute(question: string, history: { role: 'user' | 'assistant'; content: string }[]): Promise<{ response: string }> {
+  async execute(
+    typeContext: "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle", 
+    question: string, 
+    history: { role: 'user' | 'assistant'; content: string }[]): Promise<{ response: string }> {
     try {
+      this.customContent = getCustomContent(typeContext,'gemini');
       const contents = [
         { role: 'user', parts: [{ text: this.customContent }] },
         ...history.map((msg) => ({

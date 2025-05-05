@@ -11,9 +11,9 @@ import { MongoRepository } from 'typeorm';
 @Injectable()
 export class DeepseekService {
   private readonly logger = new Logger(DeepseekService.name);
-  private readonly customContent: string;
   private readonly baseURL: string;
   private readonly apiKey: string;
+  private customContent: string;
 
   constructor(
     @InjectRepository(IA_Agent)
@@ -29,10 +29,13 @@ export class DeepseekService {
       this.logger.error('DEEPSEEK_API_KEY não configurada');
       throw new Error('Configuração da API Deepseek ausente.');
     }
-    this.customContent = getCustomContent('deepseek');
   }
 
-  async execute(question: string, history: { role: "user" | "assistant"; content: string; }[]): Promise<{ response: string }> {
+  async execute(
+    typeContext: "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle", 
+    question: string, 
+    history: { role: "user" | "assistant"; content: string; }[]): Promise<{ response: string }> {
+    this.customContent = getCustomContent(typeContext, 'deepseek');
     if (!this.baseURL || !this.apiKey) {
       console.error('Deepseek config ausente:', { baseURL: this.baseURL, apiKey: this.apiKey });
       throw new InternalServerErrorException('Configuração da API Deepseek ausente.');

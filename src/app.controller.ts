@@ -70,6 +70,30 @@ export class AppController {
     };
 
   @UseGuards(AuthGuard('jwt'))
+  @Post('/hangman')
+    async hangmanGame(@Req() req: Request & { user: UserResponseDto }, @Res() res: Response) {
+        try {
+            const { typeContext, agent, question } = req.body;
+            const userId = req.user?.id;
+            if (!typeContext || !isNaN(typeContext)) {
+                return res.status(HttpStatus.BAD_REQUEST).json({
+                    message: 'Pergunta não enviada ou inválida!',
+                });    
+            };
+            if (!agent || !isNaN(agent) || !ALLOWED_AGENTS.includes(agent)) {
+                return res.status(HttpStatus.BAD_REQUEST).json({
+                    message: 'Agente de IA não enviado ou inválido!',
+                    supported_agents: ALLOWED_AGENTS,
+                });    
+            };
+            const result = await this.appService.hangmanGame(typeContext, question, agent, userId);
+            return res.status(HttpStatus.OK).json(result);
+        } catch (error) {
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+        };
+    };
+
+  @UseGuards(AuthGuard('jwt'))
   @Post('/create-agent')
   async createNewAgent(@Body() body: CreateAgentDto): Promise<IA_Agent> {
     try {

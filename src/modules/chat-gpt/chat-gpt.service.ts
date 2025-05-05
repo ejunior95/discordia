@@ -12,7 +12,7 @@ import { ChatHistory } from 'src/entities/chat-history.entity';
 export class ChatGptService {
   private readonly logger = new Logger(ChatGptService.name);
   private aiInstance: OpenAI;
-  private customContent = getCustomContent('chat-gpt');
+  private customContent: string;
 
   constructor(
     @InjectRepository(IA_Agent)
@@ -29,8 +29,12 @@ export class ChatGptService {
     this.aiInstance = new OpenAI({ apiKey });
   }
 
-  async execute(question: string, history: { role: 'user' | 'assistant'; content: string }[]): Promise<{ response: string }> {
+  async execute(
+    typeContext: "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle", 
+    question: string,
+    history: { role: 'user' | 'assistant'; content: string }[]): Promise<{ response: string }> {
     try {
+      this.customContent = getCustomContent(typeContext,'chat-gpt');
       const messages: ChatCompletionMessageParam[] = [
         { role: 'system', content: this.customContent },
         ...history,

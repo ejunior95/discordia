@@ -23,7 +23,7 @@ export class GrokController {
             }
 
             const history = await this.grokService.getRecentHistory(userId, 10);
-            const result = await this.grokService.execute(question, history);
+            const result = await this.grokService.execute('chat', question, history);
             await this.grokService.saveMessage(userId, 'user', question);
             await this.grokService.saveMessage(
                 userId, 
