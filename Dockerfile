@@ -1,13 +1,33 @@
-FROM node:latest
+# Etapa de build
+FROM node:22.0.0 AS builder
 
-WORKDIR /src
-
+# Define o diretório de trabalho
+WORKDIR /app
+# Copia os arquivos do projeto
 COPY . .
-
-RUN rm -rf node_modules
+# Instala o pnpm globalmente
 RUN npm i -g pnpm
-RUN pnpm i
+# Instala dependências
+RUN pnpm install
+# Compila o projeto NestJS
+RUN pnpm build
 
-CMD ["npm", "start"]
+# Etapa final
+FROM builder
 
+WORKDIR /app
+
+# Copia apenas os arquivos necessários da build anterior
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-lock.yaml ./
+
+# Expõe a porta usada no Nest (ajuste se necessário)
 EXPOSE 3000
+
+# Define a variável de ambiente da porta (opcional)
+ENV PORT=3000
+
+# Comando para iniciar a aplicação
+CMD ["node", "dist/main"]

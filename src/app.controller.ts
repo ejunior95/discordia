@@ -27,6 +27,15 @@ const ALLOWED_AGENTS = ['deepseek', 'gemini', 'chat-gpt', 'grok'];
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  @Get('/health')
+  healthCheck(@Res() res: Response) {
+    return res.status(HttpStatus.OK).json({
+      status: 'ok',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    });  
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Post('/ask-to-all')
     async askToAllAgents(@Req() req: Request & { user: UserResponseDto }, @Res() res: Response) {
