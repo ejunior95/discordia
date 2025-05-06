@@ -23,10 +23,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-lock.yaml ./
 
-# Expõe a porta usada no Nest (ajuste se necessário)
+# Expõe a porta usada no Nest
 EXPOSE 3000
 
-# Define a variável de ambiente da porta (opcional)
+# Define a variável de ambiente da porta
 ENV PORT=3000
 
 # Comando para iniciar a aplicação
