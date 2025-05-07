@@ -8,7 +8,11 @@ async function bootstrap() {
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.enableCors({
-    origin: ['http://localhost:5173', 'https://discordia.app.br'],
+    origin: [
+      'http://localhost:5173', 
+      'https://discordia.app.br',
+      'https://api.discordia.app.br'
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -16,6 +20,6 @@ async function bootstrap() {
   
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
-  console.log(`🚀 App running on port ${port} and listening on 0.0.0.0`);
+  console.log(`🚀 App running on port ${port}`);
 }
 bootstrap();
