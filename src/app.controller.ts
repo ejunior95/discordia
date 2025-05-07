@@ -29,9 +29,16 @@ export class AppController {
 
   @Get('/health')
   healthCheck(@Res() res: Response) {
+    const uptimeInSeconds = process.uptime();
+
+    const seconds = Math.floor(uptimeInSeconds % 60);
+    const minutes = Math.floor((uptimeInSeconds % 3600) / 60);
+    const hours = Math.floor(uptimeInSeconds / 3600);
+
+    const uptimeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     return res.status(HttpStatus.OK).json({
-      status: 'ok',
-      uptime: process.uptime(),
+      status: 'OK',
+      uptime: uptimeString,
       timestamp: new Date().toISOString(),
     });  
   }
