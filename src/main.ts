@@ -10,8 +10,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:5173', 
-      'https://discordia.app.br',
-      'https://api.discordia.app.br'
+      'https://discordia.app.br'
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
