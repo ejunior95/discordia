@@ -1,6 +1,7 @@
 import { 
     Body, 
     Controller, 
+    Delete, 
     Get, 
     HttpException, 
     HttpStatus, 
@@ -16,9 +17,7 @@ import { AppService } from './app.service';
 import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { IA_Agent } from './entities/agent.entity';
-import { Question } from './entities/question.entity';
 import { CreateAgentDto } from './dtos/create-agent.dto';
-import { CreateQuestionDto } from './dtos/create-question.dto';
 import { UserResponseDto } from './modules/users/dtos/response-user.dto';
 
 const ALLOWED_AGENTS = ['deepseek', 'gemini', 'chat-gpt', 'grok'];
@@ -120,16 +119,6 @@ export class AppController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Post('/create-question')
-  async createNewQuestion(@Body() body: CreateQuestionDto): Promise<Question> {
-    try {
-      return await this.appService.createQuestion(body);
-    } catch (error) {
-      throw new InternalServerErrorException(`Erro ao salvar a pergunta - ${error}`);
-    }
-  }
-
-  @UseGuards(AuthGuard('jwt'))
   @Get('/find-all-agents')
   async findAllAgents(): Promise<IA_Agent[]> {
     try {
@@ -155,13 +144,12 @@ export class AppController {
   }
   
   @UseGuards(AuthGuard('jwt'))
-  @Get('/find-question')
-  async findQuestion(@Body() body: { question: string }): Promise<Question[]> {
+  @Delete('/clear-history/:typeHistory')
+  async clearHistoryByParam(@Param('typeHistory') typeHistory: "chat" | "hangman") {
     try {
-      const { question } = body
-      return await this.appService.findAnswersByQuestion(question);
+      return await this.appService.clearAllHistory(typeHistory)
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao buscar agente de IA - ${error}`);
+      throw new InternalServerErrorException(`Erro ao limpar histórico ${typeHistory} - ${error}`);
     }
   }
 
