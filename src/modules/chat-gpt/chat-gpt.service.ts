@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { Injectable, Logger } from '@nestjs/common';
-import { getCustomContent } from 'src/utils/getCustomContent';
+import { dynamicTemperature, getCustomContent } from 'src/utils/getCustomContent';
 import { ConfigService } from '@nestjs/config';
 import { ChatCompletionMessageParam } from 'openai/resources/chat';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -45,7 +45,7 @@ export class ChatGptService {
         model: 'gpt-4o',
         messages,
         max_tokens: 100,
-        temperature: 0.7,
+        temperature: dynamicTemperature[typeContext],
       });
 
       const assistantReply = response.choices[0].message.content;

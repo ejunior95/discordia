@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { lastValueFrom } from 'rxjs';
 import { IA_Agent } from 'src/entities/agent.entity';
 import { ChatHistory } from 'src/entities/chat-history.entity';
-import { getCustomContent } from 'src/utils/getCustomContent';
+import { dynamicTemperature, getCustomContent } from 'src/utils/getCustomContent';
 import { MongoRepository } from 'typeorm';
 
 @Injectable()
@@ -55,7 +55,7 @@ export class DeepseekService {
             model: 'deepseek-chat',
             messages,
             max_tokens: 100,
-            temperature: 0.7
+            temperature: dynamicTemperature[typeContext],
           },
           {
             headers: {

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GoogleGenAI } from "@google/genai";
-import { getCustomContent } from 'src/utils/getCustomContent';
+import { dynamicTemperature, getCustomContent } from 'src/utils/getCustomContent';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChatHistory } from 'src/entities/chat-history.entity';
@@ -42,16 +42,18 @@ export class GeminiService {
         })),
         { role: 'user', parts: [{ text: question }] },
       ];
+      console.log('LOOOOOOOOOOOOOOG CONTENTS', JSON.stringify(contents))
 
       const { text } = await this.aiInstance.models.generateContent({
         model: "gemini-2.0-flash",
         contents,
         config: {
           maxOutputTokens: 100,
-          temperature: 0.7
+          temperature: dynamicTemperature[typeContext],
         }
       });
 
+      console.log('LOOOOOOOOOOOOOOOOOOOOOG',{ response: text });
       return { response: text ? text : '' };
     } catch (error) {
       this.logger.error('Erro na chamada do Gemini:', error);

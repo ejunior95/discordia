@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IA_Agent } from 'src/entities/agent.entity';
 import { ChatHistory } from 'src/entities/chat-history.entity';
-import { getCustomContent } from 'src/utils/getCustomContent';
+import { dynamicTemperature, getCustomContent } from 'src/utils/getCustomContent';
 import { MongoRepository } from 'typeorm';
 
 @Injectable()
@@ -51,7 +51,7 @@ export class GrokService {
         max_tokens: 100,
         system: this.customContent,
         messages,
-        temperature: 0.7
+        temperature: dynamicTemperature[typeContext],
       });
 
       // @ts-ignore

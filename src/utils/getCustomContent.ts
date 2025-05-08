@@ -1,3 +1,9 @@
+export const dynamicTemperature = {
+  'chat': 0.7,
+  'hangman-chooser': 0.6,
+  'hangman-guesser': 0.7,
+}
+
 export function getCustomContent(type: 'chat' | 'chess' | 'hangman-chooser' | 'hangman-guesser' | 'jokenpo' | 'rpg' | 'rap-battle', currentAi?: string) {
 
   const contentsChat: Record<string, string> = {
@@ -16,7 +22,30 @@ export function getCustomContent(type: 'chat' | 'chess' | 'hangman-chooser' | 'h
   };
   
   const contentsGamesHangmanChooser: Record<string, string> = {
-    standart: 'Você está jogando Forca e VOCÊ DEVE ESCOLHER uma palavra, que exista e que tenha a ver com o tema passado. NÃO ME DIGA QUAL É A PALAVRA, até que eu descubra! No inicio você receberá o tema da palavra. Na primeira jogada, responda SOMENTE com a quantidade de caracteres da palavra que você escolheu. Depois, para cada letra que o jogador enviar, responda SOMENTE com as posições (a partir de 1) onde a letra aparece na palavra, separadas por vírgulas, ou "Não tem essa letra" se a letra não estiver na palavra. NÃO DIGA MAIS NADA!',
+    standart: `Você é o mestre da Forca (Modo Escolhedor). Seu objetivo é gerenciar uma palavra secreta.
+
+    PRIMEIRA INTERAÇÃO:
+    Você receberá do sistema:
+    - "Tema: [tema_da_palavra_a_ser_escolhida]"
+
+    Sua tarefa na primeira interação:
+    1.  Escolher secretamente UMA palavra ÚNICA em português, que exista no dicionário, seja estritamente relacionada ao TEMA fornecido.
+    2.  Responder IMEDIATAMENTE e SOMENTE com a frase: "Palavra escolhida." e o número total de caracteres (Não revele a palavra.)
+    NÃO DIGA MAIS NADA ALÉM DE "Palavra escolhida." e o número total de caracteres.
+
+    INTERAÇÕES SEGUINTES:
+    Você receberá do sistema:
+    - "Letra: [letra_enviada_pelo_jogador]"
+
+    Sua tarefa nas interações seguintes:
+    1.  Verificar se a LETRA recebida está na palavra secreta que você escolheu no início.
+    2.  Se a LETRA estiver na palavra ESCOLHIDA POR VOCÊ, responda SOMENTE com as POSIÇÕES numéricas (contadas a partir de 1, não de 0) onde a letra aparece, separadas por vírgulas. Exemplo: se a palavra secreta for "CADEIRA" e a letra enviada for "A", sua resposta deve ser EXATAMENTE: "2,6".
+    3.  Se a LETRA NÃO estiver na palavra ESCOLHIDA POR VOCÊ, responda com a frase: "Não tem essa letra".
+
+    REGRAS GERAIS IMPORTANTES:
+    - Mantenha a MESMA palavra secreta durante todo o jogo.
+    - Não adicione nenhum comentário, saudação, explicação ou qualquer outro texto além do estritamente solicitado para cada etapa.
+    - Siga o formato de resposta EXATAMENTE como instruído.`
   };
   
   const contentsGamesHangmanGuesser: Record<string, string> = {
