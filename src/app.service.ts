@@ -5,22 +5,21 @@ import { GeminiService } from './modules/gemini/gemini.service';
 import { GrokService } from './modules/grok/grok.service';
 import { IA_Agent } from './entities/agent.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MongoRepository } from 'typeorm';
+import { MongoRepository, MoreThanOrEqual } from 'typeorm';
 import { MongoServerError, ObjectId } from 'mongodb';
-import { Question } from './entities/question.entity';
 import { CreateAgentDto } from './dtos/create-agent.dto';
-import { CreateQuestionDto } from './dtos/create-question.dto';
 import { ChatHistory } from './entities/chat-history.entity';
+import { HangmanHistory } from './entities/hangman-history.entity';
 
 @Injectable()
 export class AppService {
   constructor(
     @InjectRepository(IA_Agent)
     private readonly agentRepository: MongoRepository<IA_Agent>,
-    @InjectRepository(Question)
-    private readonly questionRepository: MongoRepository<Question>,
     @InjectRepository(ChatHistory)
     private readonly chatHistoryRepository: MongoRepository<ChatHistory>,
+    @InjectRepository(HangmanHistory)
+    private readonly hangmanHistoryRepository: MongoRepository<HangmanHistory>,
     private readonly chatGptService: ChatGptService,
     private readonly deepseekService: DeepseekService,
     private readonly geminiService: GeminiService,
@@ -109,6 +108,8 @@ export class AppService {
   }
   
   async getRecentHistory(userId: string, limit: number) {
+    // const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    // timestamp: MoreThanOrEqual(thirtyMinutesAgo),
     const messages = await this.chatHistoryRepository.find({
       where: { user_id: userId },
       order: { timestamp: 'DESC' },
@@ -116,6 +117,17 @@ export class AppService {
     });
 
     return messages.reverse().map(msg => ({ role: msg.role, content: msg.content }));
+  }
+
+  async clearAllHistory(typeHistory: 'chat' | 'hangman') {
+    const collections = {
+      'chat': this.chatHistoryRepository,
+      'hangman': this.hangmanHistoryRepository,
+    };
+  
+    const repository = collections[typeHistory];
+  
+    await repository.deleteMany({});
   }
   
   async saveMessage(userId: string, role: 'user' | 'assistant', content: string, agentName?: string) {
@@ -143,7 +155,7 @@ export class AppService {
     userId: string,
     ) {
     try {
-      const history = await this.getRecentHistory(userId, 8);
+      const history = await this.getRecentHistory(userId, 100);
 
       const agentExecutors = {
         'deepseek': async () => await this.deepseekService.execute(typeContext, question, history),
@@ -182,11 +194,6 @@ export class AppService {
       throw error;
     }
   }  
-
-  async createQuestion(data: CreateQuestionDto): Promise<Question> {
-    const question = this.questionRepository.create(data);
-    return await this.questionRepository.save(question);
-  }
   
   async findAllIaAgents(): Promise<IA_Agent[]> {
     return this.agentRepository.find({
@@ -203,12 +210,6 @@ export class AppService {
     });
     if (!agent) throw new NotFoundException('Usuário não encontrado');
     return agent;
-  }
-  
-  async findAnswersByQuestion(question: string): Promise<Question[]> {
-    return await this.questionRepository.find({
-      where: { question },
-    });
   }
 
   async updateIaAgent(id: string, data: { score: number }) {
