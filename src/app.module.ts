@@ -16,8 +16,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { IA_Agent } from './entities/agent.entity';
-import { Question } from './entities/question.entity';
 import { ChatHistory } from './entities/chat-history.entity';
+import { HangmanHistory } from './entities/hangman-history.entity';
 
 @Module({
   imports: [
@@ -42,9 +42,9 @@ import { ChatHistory } from './entities/chat-history.entity';
       inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([
-      IA_Agent, 
-      Question,
+      IA_Agent,
       ChatHistory,
+      HangmanHistory
     ]),
     HttpModule.register({
       httpsAgent: new Agent({
