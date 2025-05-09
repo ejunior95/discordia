@@ -108,8 +108,6 @@ export class AppService {
   }
   
   async getRecentHistory(userId: string, limit: number) {
-    // const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-    // timestamp: MoreThanOrEqual(thirtyMinutesAgo),
     const messages = await this.chatHistoryRepository.find({
       where: { user_id: userId },
       order: { timestamp: 'DESC' },
@@ -155,6 +153,7 @@ export class AppService {
     userId: string,
     ) {
     try {
+
       const history = await this.getRecentHistory(userId, 100);
 
       const agentExecutors = {
