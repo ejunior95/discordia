@@ -34,6 +34,7 @@ export class GeminiService {
     history: { role: 'user' | 'assistant'; content: string }[]): Promise<{ response: string }> {
     try {
       this.customContent = getCustomContent(typeContext,'gemini');
+      
       const contents = [
         { role: 'user', parts: [{ text: this.customContent }] },
         ...history.map((msg) => ({
@@ -42,7 +43,6 @@ export class GeminiService {
         })),
         { role: 'user', parts: [{ text: question }] },
       ];
-      console.log('LOOOOOOOOOOOOOOG CONTENTS', JSON.stringify(contents))
 
       const { text } = await this.aiInstance.models.generateContent({
         model: "gemini-2.0-flash",
@@ -53,7 +53,6 @@ export class GeminiService {
         }
       });
 
-      console.log('LOOOOOOOOOOOOOOOOOOOOOG',{ response: text });
       return { response: text ? text : '' };
     } catch (error) {
       this.logger.error('Erro na chamada do Gemini:', error);
