@@ -16,8 +16,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { IA_Agent } from './entities/agent.entity';
-import { ChatHistory } from './entities/chat-history.entity';
-import { HangmanHistory } from './entities/hangman-history.entity';
+import { History } from './entities/history.entity';
 
 @Module({
   imports: [
@@ -43,8 +42,7 @@ import { HangmanHistory } from './entities/hangman-history.entity';
     }),
     TypeOrmModule.forFeature([
       IA_Agent,
-      ChatHistory,
-      HangmanHistory
+      History,
     ]),
     HttpModule.register({
       httpsAgent: new Agent({
