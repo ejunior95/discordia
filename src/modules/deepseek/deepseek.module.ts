@@ -5,8 +5,7 @@ import { HttpModule } from '@nestjs/axios';
 import { Agent } from 'https';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { IA_Agent } from 'src/entities/agent.entity';
-import { ChatHistory } from 'src/entities/chat-history.entity';
-import { HangmanHistory } from 'src/entities/hangman-history.entity';
+import { History } from 'src/entities/history.entity';
 
 @Module({
   imports: [
@@ -18,8 +17,7 @@ import { HangmanHistory } from 'src/entities/hangman-history.entity';
     }),
     TypeOrmModule.forFeature([
       IA_Agent,
-      ChatHistory,
-      HangmanHistory,
+      History,
     ]),
   ],
   controllers: [DeepseekController],

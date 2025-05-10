@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { dynamicTemperature, getCustomContent } from 'src/utils/getCustomContent';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChatHistory } from 'src/entities/chat-history.entity';
+import { History } from 'src/entities/history.entity';
 import { MongoRepository } from 'typeorm';
 import { IA_Agent } from 'src/entities/agent.entity';
 
@@ -16,8 +16,8 @@ export class GeminiService {
   constructor(
     @InjectRepository(IA_Agent)
     private readonly agentRepository: MongoRepository<IA_Agent>,
-    @InjectRepository(ChatHistory)
-    private readonly chatHistoryRepository: MongoRepository<ChatHistory>,
+    @InjectRepository(History)
+    private readonly historyRepository: MongoRepository<History>,
     private readonly configService: ConfigService
   ) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
@@ -29,11 +29,11 @@ export class GeminiService {
   }
 
   async execute(
-    typeContext: "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle", 
+    context: "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle", 
     question: string, 
     history: { role: 'user' | 'assistant'; content: string }[]): Promise<{ response: string }> {
     try {
-      this.customContent = getCustomContent(typeContext,'gemini');
+      this.customContent = getCustomContent(context,'gemini');
       
       const contents = [
         { role: 'user', parts: [{ text: this.customContent }] },
@@ -49,7 +49,7 @@ export class GeminiService {
         contents,
         config: {
           maxOutputTokens: 100,
-          temperature: dynamicTemperature[typeContext],
+          temperature: dynamicTemperature[context],
         }
       });
 
@@ -61,25 +61,31 @@ export class GeminiService {
   }
 
   async getRecentHistory(userId: string, limit: number) {
-    const messages = await this.chatHistoryRepository.find({
+    const messages = await this.historyRepository.find({
       where: { user_id: userId },
-      order: { timestamp: 'DESC' },
+      order: { created_at: 'DESC' },
       take: limit,
     });
 
     return messages.reverse().map(msg => ({ role: msg.role, content: msg.content }));
   }
   
-  async saveMessage(userId: string, role: 'user' | 'assistant', content: string, agentName?: string) {
+  async addHistory(
+    context:  "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle",
+    userId: string, 
+    role: 'user' | 'assistant', 
+    content: string, 
+    agentName?: string,
+  ) {
     const agentId = agentName ? await this.getAgentIdByName(agentName) : undefined;
-    const message = this.chatHistoryRepository.create({
+    const message = this.historyRepository.create({
       user_id: userId,
-      timestamp: new Date(),
       role,
+      context,
       content,
       agent_id: agentId,
     });
-    await this.chatHistoryRepository.save(message);
+    await this.historyRepository.save(message);
   }
 
   async getAgentIdByName(name: string): Promise<string> {

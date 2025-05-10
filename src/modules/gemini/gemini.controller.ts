@@ -22,8 +22,9 @@ export class GeminiController {
 
             const history = await this.geminiService.getRecentHistory(userId, 10);
             const result = await this.geminiService.execute('chat', question, history);
-            await this.geminiService.saveMessage(userId, 'user', question);
-            await this.geminiService.saveMessage(
+            await this.geminiService.addHistory('chat', userId, 'user', question);
+            await this.geminiService.addHistory(
+                'chat',
                 userId, 
                 'assistant', 
                 result.response ? result.response : '', 

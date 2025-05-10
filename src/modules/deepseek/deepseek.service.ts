@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { lastValueFrom } from 'rxjs';
 import { IA_Agent } from 'src/entities/agent.entity';
-import { ChatHistory } from 'src/entities/chat-history.entity';
+import { History } from 'src/entities/history.entity';
 import { dynamicTemperature, getCustomContent } from 'src/utils/getCustomContent';
 import { MongoRepository } from 'typeorm';
 
@@ -18,8 +18,8 @@ export class DeepseekService {
   constructor(
     @InjectRepository(IA_Agent)
     private readonly agentRepository: MongoRepository<IA_Agent>,
-    @InjectRepository(ChatHistory)
-    private readonly chatHistoryRepository: MongoRepository<ChatHistory>,
+    @InjectRepository(History)
+    private readonly historyRepository: MongoRepository<History>,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
@@ -32,10 +32,10 @@ export class DeepseekService {
   }
 
   async execute(
-    typeContext: "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle", 
+    context: "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle", 
     question: string, 
     history: { role: "user" | "assistant"; content: string; }[]): Promise<{ response: string }> {
-    this.customContent = getCustomContent(typeContext, 'deepseek');
+    this.customContent = getCustomContent(context, 'deepseek');
     if (!this.baseURL || !this.apiKey) {
       console.error('Deepseek config ausente:', { baseURL: this.baseURL, apiKey: this.apiKey });
       throw new InternalServerErrorException('Configuração da API Deepseek ausente.');
@@ -55,7 +55,7 @@ export class DeepseekService {
             model: 'deepseek-chat',
             messages,
             max_tokens: 100,
-            temperature: dynamicTemperature[typeContext],
+            temperature: dynamicTemperature[context],
           },
           {
             headers: {
@@ -88,25 +88,31 @@ export class DeepseekService {
   }
   
   async getRecentHistory(userId: string, limit: number) {
-    const messages = await this.chatHistoryRepository.find({
+    const messages = await this.historyRepository.find({
       where: { user_id: userId },
-      order: { timestamp: 'DESC' },
+      order: { created_at: 'DESC' },
       take: limit,
     });
 
     return messages.reverse().map(msg => ({ role: msg.role, content: msg.content }));
   }
   
-  async saveMessage(userId: string, role: 'user' | 'assistant', content: string, agentName?: string) {
+  async addHistory(
+    context:  "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle",
+    userId: string, 
+    role: 'user' | 'assistant', 
+    content: string, 
+    agentName?: string
+  ) {
     const agentId = agentName ? await this.getAgentIdByName(agentName) : undefined;
-    const message = this.chatHistoryRepository.create({
+    const message = this.historyRepository.create({
       user_id: userId,
-      timestamp: new Date(),
       role,
+      context,
       content,
       agent_id: agentId,
     });
-    await this.chatHistoryRepository.save(message);
+    await this.historyRepository.save(message);
   }
 
   async getAgentIdByName(name: string): Promise<string> {

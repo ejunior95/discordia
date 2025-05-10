@@ -1,7 +1,11 @@
 export const dynamicTemperature = {
   'chat': 0.7,
-  'hangman-chooser': 0.6,
+  'hangman-chooser': 0.5,
   'hangman-guesser': 0.7,
+  "chess": 0.7,
+  "jokenpo": 0.7, 
+  "rpg": 0.7,
+  "rap-battle": 0.7
 }
 
 export function getCustomContent(type: 'chat' | 'chess' | 'hangman-chooser' | 'hangman-guesser' | 'jokenpo' | 'rpg' | 'rap-battle', currentAi?: string) {
