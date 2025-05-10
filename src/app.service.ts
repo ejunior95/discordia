@@ -5,21 +5,18 @@ import { GeminiService } from './modules/gemini/gemini.service';
 import { GrokService } from './modules/grok/grok.service';
 import { IA_Agent } from './entities/agent.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MongoRepository, MoreThanOrEqual } from 'typeorm';
+import { MongoRepository} from 'typeorm';
 import { MongoServerError, ObjectId } from 'mongodb';
 import { CreateAgentDto } from './dtos/create-agent.dto';
-import { ChatHistory } from './entities/chat-history.entity';
-import { HangmanHistory } from './entities/hangman-history.entity';
+import { History } from './entities/history.entity';
 
 @Injectable()
 export class AppService {
   constructor(
     @InjectRepository(IA_Agent)
     private readonly agentRepository: MongoRepository<IA_Agent>,
-    @InjectRepository(ChatHistory)
-    private readonly chatHistoryRepository: MongoRepository<ChatHistory>,
-    @InjectRepository(HangmanHistory)
-    private readonly hangmanHistoryRepository: MongoRepository<HangmanHistory>,
+    @InjectRepository(History)
+    private readonly historyRepository: MongoRepository<History>,
     private readonly chatGptService: ChatGptService,
     private readonly deepseekService: DeepseekService,
     private readonly geminiService: GeminiService,
@@ -28,7 +25,7 @@ export class AppService {
 
   async askToAll(question: string, userId: string) {
     try {
-      const history = await this.getRecentHistory(userId, 10);
+      const history = await this.getRecentHistory(userId, 10, 'chat');
   
       const [geminiRes, deepseekRes, chatGptRes, grokRes] = await Promise.all([
         this.geminiService.execute('chat', question, history),
@@ -37,27 +34,31 @@ export class AppService {
         this.grokService.execute('chat', question, history),
       ]);
   
-      await this.saveMessage(userId, 'user', question);
+      await this.addHistory('chat', userId, 'user', question);
       await Promise.all([
-        this.saveMessage(
+        this.addHistory(
+          'chat',
           userId, 
           'assistant', 
           geminiRes.response ? geminiRes.response : '', 
           'gemini'
         ),
-        this.saveMessage(
+        this.addHistory(
+          'chat',
           userId, 
           'assistant', 
           deepseekRes.response, 
           'deepseek'
         ),
-        this.saveMessage(
+        this.addHistory(
+          'chat',
           userId, 
           'assistant', 
           chatGptRes.response ? chatGptRes.response : '', 
           'chat-gpt'
         ),
-        this.saveMessage(
+        this.addHistory(
+          'chat',
           userId, 
           'assistant', 
           grokRes.response, 
@@ -79,7 +80,7 @@ export class AppService {
 
   async askToOne(question: string, agent: string, userId: string) {
     try {
-      const history = await this.getRecentHistory(userId, 10);
+      const history = await this.getRecentHistory(userId, 10, 'chat');
 
       const agentExecutors = {
         'deepseek': async () => await this.deepseekService.execute('chat',question, history),
@@ -96,8 +97,8 @@ export class AppService {
 
       const result = await executor();
 
-      await this.saveMessage(userId, 'user', question);
-      this.saveMessage(userId, 'assistant', result?.response, agent);
+      await this.addHistory('chat', userId, 'user', question);
+      this.addHistory('chat', userId, 'assistant', result?.response, agent);
 
       return { [agent]: result };
   
@@ -107,37 +108,45 @@ export class AppService {
     }
   }
   
-  async getRecentHistory(userId: string, limit: number) {
-    const messages = await this.chatHistoryRepository.find({
-      where: { user_id: userId },
-      order: { timestamp: 'DESC' },
+  async getRecentHistory(
+    userId: string, 
+    limit: number,
+    context:  "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle"
+  ) {
+    const messages = await this.historyRepository.find({
+      where: { 
+        user_id: userId,
+        context
+      },
+      order: { created_at: 'DESC' },
       take: limit,
     });
 
     return messages.reverse().map(msg => ({ role: msg.role, content: msg.content }));
   }
 
-  async clearAllHistory(typeHistory: 'chat' | 'hangman') {
-    const collections = {
-      'chat': this.chatHistoryRepository,
-      'hangman': this.hangmanHistoryRepository,
-    };
-  
-    const repository = collections[typeHistory];
-  
-    await repository.deleteMany({});
+  async clearAllHistory(
+    context:  "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle"
+  ) {
+     await this.historyRepository.deleteMany({context})
   }
   
-  async saveMessage(userId: string, role: 'user' | 'assistant', content: string, agentName?: string) {
+  async addHistory(
+    context:  "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle",
+    userId: string, 
+    role: 'user' | 'assistant', 
+    content: string, 
+    agentName?: string,
+  ) {
     const agentId = agentName ? await this.getAgentIdByName(agentName) : undefined;
-    const message = this.chatHistoryRepository.create({
+    const message = this.historyRepository.create({
       user_id: userId,
-      timestamp: new Date(),
       role,
+      context,
       content,
       agent_id: agentId,
     });
-    await this.chatHistoryRepository.save(message);
+    await this.historyRepository.save(message);
   }
 
   async getAgentIdByName(name: string): Promise<string> {
@@ -147,20 +156,20 @@ export class AppService {
   }
   
   async hangmanGame(
-    typeContext: "hangman-chooser" | "hangman-guesser",  
+    context: "hangman-chooser" | "hangman-guesser",  
     question: string,
     agent: string, 
     userId: string,
     ) {
     try {
 
-      const history = await this.getRecentHistory(userId, 100);
+      const history = await this.getRecentHistory(userId, 100, context);
 
       const agentExecutors = {
-        'deepseek': async () => await this.deepseekService.execute(typeContext, question, history),
-        'gemini': async () => await this.geminiService.execute(typeContext, question, history),
-        'chat-gpt': async () => await this.chatGptService.execute(typeContext, question, history),
-        'grok': async () => await this.grokService.execute(typeContext, question, history)
+        'deepseek': async () => await this.deepseekService.execute(context, question, history),
+        'gemini': async () => await this.geminiService.execute(context, question, history),
+        'chat-gpt': async () => await this.chatGptService.execute(context, question, history),
+        'grok': async () => await this.grokService.execute(context, question, history)
       };
   
       const executor = agentExecutors[agent];
@@ -171,8 +180,8 @@ export class AppService {
 
       const result = await executor();
 
-      await this.saveMessage(userId, 'user', question);
-      this.saveMessage(userId, 'assistant', result?.response, agent);
+      await this.addHistory(context, userId, 'user', question);
+      this.addHistory(context, userId, 'assistant', result?.response, agent);
 
       return { [agent]: result };
   
