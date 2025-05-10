@@ -88,9 +88,9 @@ export class AppController {
   @Post('/hangman')
     async hangmanGame(@Req() req: Request & { user: UserResponseDto }, @Res() res: Response) {
         try {
-            const { typeContext, agent, question } = req.body;
+            const { context, agent, question } = req.body;
             const userId = req.user?.id;
-            if (!typeContext || !isNaN(typeContext)) {
+            if (!context || !isNaN(context)) {
                 return res.status(HttpStatus.BAD_REQUEST).json({
                     message: 'Pergunta não enviada ou inválida!',
                 });    
@@ -101,7 +101,7 @@ export class AppController {
                     supported_agents: ALLOWED_AGENTS,
                 });    
             };
-            const result = await this.appService.hangmanGame(typeContext, question, agent, userId);
+            const result = await this.appService.hangmanGame(context, question, agent, userId);
             return res.status(HttpStatus.OK).json(result);
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
@@ -144,12 +144,13 @@ export class AppController {
   }
   
   @UseGuards(AuthGuard('jwt'))
-  @Delete('/clear-history/:typeHistory')
-  async clearHistoryByParam(@Param('typeHistory') typeHistory: "chat" | "hangman") {
+  @Delete('/clear-history/:context')
+  async clearHistoryByParam(
+    @Param('context') context:  "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle") {
     try {
-      return await this.appService.clearAllHistory(typeHistory)
+      return await this.appService.clearAllHistory(context)
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao limpar histórico ${typeHistory} - ${error}`);
+      throw new InternalServerErrorException(`Erro ao limpar histórico ${context} - ${error}`);
     }
   }
 
