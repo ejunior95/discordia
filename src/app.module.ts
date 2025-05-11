@@ -17,6 +17,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { IA_Agent } from './entities/agent.entity';
 import { History } from './entities/history.entity';
+import { Session } from './entities/session.entity';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { History } from './entities/history.entity';
     TypeOrmModule.forFeature([
       IA_Agent,
       History,
+      Session,
     ]),
     HttpModule.register({
       httpsAgent: new Agent({
