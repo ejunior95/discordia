@@ -9,6 +9,7 @@ import { MongoRepository} from 'typeorm';
 import { MongoServerError, ObjectId } from 'mongodb';
 import { CreateAgentDto } from './dtos/create-agent.dto';
 import { History } from './entities/history.entity';
+import { Session } from './entities/session.entity';
 
 @Injectable()
 export class AppService {
@@ -17,6 +18,8 @@ export class AppService {
     private readonly agentRepository: MongoRepository<IA_Agent>,
     @InjectRepository(History)
     private readonly historyRepository: MongoRepository<History>,
+    @InjectRepository(Session)
+    private readonly sessionRepository: MongoRepository<Session>,
     private readonly chatGptService: ChatGptService,
     private readonly deepseekService: DeepseekService,
     private readonly geminiService: GeminiService,
@@ -106,6 +109,48 @@ export class AppService {
       console.error('Erro no askToOne:', error);
       return { error: error.message || 'Erro interno' };
     }
+  }
+
+  async startSession(
+    context:  "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle",  
+    agents: string[], 
+    userId: string
+  ) {
+    const agentIds:string[] = []
+    for(let agent of agents) {
+      const agentId = agent ? await this.getAgentIdByName(agent) : '';
+      agentIds.push(agentId)
+    }
+    
+    const newSession = this.sessionRepository.create({
+      user_id: userId,
+      context,
+      agent_ids: agentIds,
+    });
+    const result = await this.sessionRepository.save(newSession);
+    return { session_id: result._id.toString() };
+  }
+
+  async finishSession(id: string) {
+    const session = await this.sessionRepository.findOne({
+      where: {
+        _id: new ObjectId(id),
+        finished_at: null,
+      },
+    });
+    if (!session) throw new NotFoundException('Sessão já encerrada');
+    await this.sessionRepository.update(id, {
+      finished_at: new Date(),
+    });
+  }
+
+  async findSessionById(id: string) {
+    return await this.sessionRepository.findOne({
+      where: {
+        _id: new ObjectId(id),
+        finished_at: null,
+      },
+    });
   }
   
   async getRecentHistory(
