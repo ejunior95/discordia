@@ -1,6 +1,7 @@
 import { 
     Body, 
     Controller, 
+    Delete, 
     Get, 
     HttpException, 
     HttpStatus, 
@@ -16,12 +17,9 @@ import { AppService } from './app.service';
 import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { IA_Agent } from './entities/agent.entity';
-import { Question } from './entities/question.entity';
 import { CreateAgentDto } from './dtos/create-agent.dto';
-import { CreateQuestionDto } from './dtos/create-question.dto';
 import { UserResponseDto } from './modules/users/dtos/response-user.dto';
-
-const ALLOWED_AGENTS = ['deepseek', 'gemini', 'chat-gpt', 'grok'];
+import { ALLOWED_AGENTS, ALLOWED_CONTEXTS } from './shared/global.service';
 
 @Controller()
 export class AppController {
@@ -86,24 +84,39 @@ export class AppController {
     };
 
   @UseGuards(AuthGuard('jwt'))
-  @Post('/hangman')
-    async hangmanGame(@Req() req: Request & { user: UserResponseDto }, @Res() res: Response) {
+  @Post('/hangman/:idSession')
+    async hangmanGame(
+      @Param('idSession') idSession: string,
+      @Req() req: Request & { user: UserResponseDto }, 
+      @Res() res: Response
+    ) {
         try {
-            const { typeContext, agent, question } = req.body;
+            const { question } = req.body;
             const userId = req.user?.id;
-            if (!typeContext || !isNaN(typeContext)) {
-                return res.status(HttpStatus.BAD_REQUEST).json({
-                    message: 'Pergunta não enviada ou inválida!',
-                });    
-            };
-            if (!agent || !isNaN(agent) || !ALLOWED_AGENTS.includes(agent)) {
-                return res.status(HttpStatus.BAD_REQUEST).json({
-                    message: 'Agente de IA não enviado ou inválido!',
-                    supported_agents: ALLOWED_AGENTS,
-                });    
-            };
-            const result = await this.appService.hangmanGame(typeContext, question, agent, userId);
-            return res.status(HttpStatus.OK).json(result);
+
+            if(!idSession) {
+              return res.status(HttpStatus.BAD_REQUEST).json({
+                message: 'Sessão inválida ou não informada!',
+              });    
+            }
+
+            const session =  await this.appService.findSessionById(idSession);
+            
+            if(!session) {
+              return res.status(HttpStatus.BAD_REQUEST).json({
+                message: 'Controller: Sessão já encerrada!',
+              });    
+            } else {
+              const agentName = await this.appService.findOnIaAgent(session.agent_ids[0]);
+              const result = await this.appService.hangmanGame(
+                // @ts-ignore
+                session.context, 
+                question, 
+                agentName?.name, 
+                userId
+              );
+              return res.status(HttpStatus.OK).json(result);
+            }
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
         };
@@ -120,12 +133,39 @@ export class AppController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Post('/create-question')
-  async createNewQuestion(@Body() body: CreateQuestionDto): Promise<Question> {
+  @Post('/session/start')
+  async startSession(@Req() req: Request & { user: UserResponseDto }, @Res() res: Response) {
     try {
-      return await this.appService.createQuestion(body);
+      const { context, agents } = req.body;
+      const userId = req.user?.id;
+      if (!context || !isNaN(context) || !ALLOWED_CONTEXTS.includes(context)) {
+          return res.status(HttpStatus.BAD_REQUEST).json({
+              message: 'Contexto inválido!',
+          });    
+      };
+      for(let agent of agents) {
+        if (!agent || !isNaN(agent) || !ALLOWED_AGENTS.includes(agent)) {
+            return res.status(HttpStatus.BAD_REQUEST).json({
+                message: 'Agente de IA não enviado ou inválido!',
+                supported_agents: ALLOWED_AGENTS,
+            });    
+        };
+      }
+      const result = await this.appService.startSession(context, agents, userId);
+      return res.status(HttpStatus.OK).json(result);
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao salvar a pergunta - ${error}`);
+        return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+    };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/session/finish/:idSession')
+  async finishSession(@Param('idSession') idSession: string) {
+    try {
+      await this.appService.finishSession(idSession);
+      return { message: 'Sessão encerrada com sucesso' };
+    } catch (error) {
+      throw new InternalServerErrorException(`Erro ao encerrar sessão - ${error}`);
     }
   }
 
@@ -155,13 +195,13 @@ export class AppController {
   }
   
   @UseGuards(AuthGuard('jwt'))
-  @Get('/find-question')
-  async findQuestion(@Body() body: { question: string }): Promise<Question[]> {
+  @Delete('/clear-history/:context')
+  async clearHistoryByParam(
+    @Param('context') context:  "chat" | "chess" | "hangman-chooser" | "hangman-guesser" | "jokenpo" | "rpg" | "rap-battle") {
     try {
-      const { question } = body
-      return await this.appService.findAnswersByQuestion(question);
+      return await this.appService.clearAllHistory(context)
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao buscar agente de IA - ${error}`);
+      throw new InternalServerErrorException(`Erro ao limpar histórico ${context} - ${error}`);
     }
   }
 

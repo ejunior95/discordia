@@ -1,3 +1,13 @@
+export const dynamicTemperature = {
+  'chat': 0.7,
+  'hangman-chooser': 0.5,
+  'hangman-guesser': 0.7,
+  "chess": 0.7,
+  "jokenpo": 0.7, 
+  "rpg": 0.7,
+  "rap-battle": 0.7
+}
+
 export function getCustomContent(type: 'chat' | 'chess' | 'hangman-chooser' | 'hangman-guesser' | 'jokenpo' | 'rpg' | 'rap-battle', currentAi?: string) {
 
   const contentsChat: Record<string, string> = {
@@ -16,11 +26,11 @@ export function getCustomContent(type: 'chat' | 'chess' | 'hangman-chooser' | 'h
   };
   
   const contentsGamesHangmanChooser: Record<string, string> = {
-    standart: 'Você está jogando Forca e VOCÊ DEVE ESCOLHER uma palavra, que exista e que tenha a ver com o tema passado. NÃO ME DIGA QUAL É A PALAVRA, até que eu descubra! No inicio você receberá o tema da palavra. Na primeira jogada, responda SOMENTE com a quantidade de caracteres da palavra que você escolheu. Depois, para cada letra que o jogador enviar, responda SOMENTE com as posições (a partir de 1) onde a letra aparece na palavra, separadas por vírgulas, ou "Não tem essa letra" se a letra não estiver na palavra. NÃO DIGA MAIS NADA!',
+    standart: `Você é o mestre da Forca (Modo Escolhedor). Você receberá um tema e seu objetivo é: Escolher UMA palavra ÚNICA em português, que exista no dicionário, seja estritamente relacionada ao TEMA fornecido.`
   };
   
   const contentsGamesHangmanGuesser: Record<string, string> = {
-    standart: 'Você está jogando Forca e deve adivinhar a palavra. Receberá a quantidade de caracteres da palavra e o tema. Responda SOMENTE com uma letra por vez ou SOMENTE a palavra completa, se conseguir deduzir qual é a palavra. Tente adivinhar a palavra antes de mandar todas as letras! Se receber "Não tem essa letra", tente outra letra. Se receber "Não é essa palavra", você perdeu. NÃO DIGA MAIS NADA!',
+    standart: 'Você está jogando Forca e deve adivinhar a palavra. Receberá a quantidade de caracteres da palavra e o tema. Responda SOMENTE COM UMA LETRA POR VEZ, até conseguir deduzir qual é a palavra. Tente adivinhar a palavra antes de mandar todas as letras! Se receber "Não tem essa letra", tente outra letra. NÃO REPITA AS LETRAS JÁ ENVIADAS. Se receber "Não é essa palavra", você perdeu. NÃO DIGA MAIS NADA!',
   };
   
   const contentsRapBattle: Record<string, string> = {
