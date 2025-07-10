@@ -89,4 +89,10 @@ export class ChatGptService {
     if (!agent) throw new Error(`Agente ${name} não encontrado`);
     return agent._id.toString();
   }
+
+  async getAllAgents() {
+    const myAssistants = await this.aiInstance.beta.assistants.list({order: "desc"});
+    return myAssistants.data;
+  }
+
 }

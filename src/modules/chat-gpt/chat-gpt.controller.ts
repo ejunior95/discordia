@@ -1,4 +1,4 @@
-import { Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ChatGptService } from './chat-gpt.service';
 import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
@@ -37,5 +37,11 @@ export class ChatGptController {
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
         }
+    }
+
+    @Get('/listAgents')
+    async listAgents() {
+        const result = await this.chatGptService.getAllAgents();
+        return result;  
     }
 }
