@@ -1,47 +1,38 @@
-import { Controller, Get, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ChatGptService } from './chat-gpt.service';
 import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
-import { AppService } from 'src/app.service';
 import { UserResponseDto } from '../users/dtos/response-user.dto';
+import { HistoryService } from 'src/shared/history.service';
+import { AskDto } from 'src/dtos/ask.dto';
 
 @Controller('chat-gpt')
 export class ChatGptController {
-    constructor(private readonly chatGptService: ChatGptService) {}
+  constructor(
+    private readonly chatGptService: ChatGptService,
+    private readonly historyService: HistoryService,
+  ) {}
 
-    @UseGuards(AuthGuard('jwt'))
-    @Post('/test-message')
-    async testMessage(@Req() req: Request & { user: UserResponseDto }, @Res() res: Response) {
-        try {
-            const { question } = req.body;
-            const userId = req.user.id;
-            
-            if (!question || !isNaN(question)) {
-                return res.status(HttpStatus.BAD_REQUEST).json({
-                    message: 'Pergunta não enviada ou inválida!'
-                });    
-            }
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/test-message')
+  async testMessage(
+    @Body() body: AskDto,
+    @Req() req: Request & { user: UserResponseDto },
+    @Res() res: Response,
+  ) {
+    try {
+      const userId = req.user.id;
+      const history = await this.historyService.getRecent(userId, 10, 'chat');
+      const result = await this.chatGptService.execute('chat', body.question, history);
 
-            const history = await this.chatGptService.getRecentHistory(userId, 10);
-            const result = await this.chatGptService.execute('chat', question, history);
-            await this.chatGptService.addHistory('chat', userId, 'user', question);
-            await this.chatGptService.addHistory(
-                'chat',
-                userId, 
-                'assistant', 
-                result.response ? result.response : '', 
-                'chat-gpt'
-            );
+      await this.historyService.add('chat', userId, 'user', body.question);
+      await this.historyService.add('chat', userId, 'assistant', result.response, 'chat-gpt');
 
-            return res.status(HttpStatus.OK).json(result);
-        } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
-        }
+      return res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: (error as Error).message });
     }
-
-    @Get('/listAgents')
-    async listAgents() {
-        const result = await this.chatGptService.getAllAgents();
-        return result;  
-    }
+  }
 }
