@@ -7,6 +7,7 @@ import {
     DeleteDateColumn,
   } from 'typeorm';
   import { ObjectId } from 'mongodb';
+  import { Exclude } from 'class-transformer';
   
   @Entity('users')
   export class User {
@@ -19,6 +20,7 @@ import {
     @Column({ unique: true })
     email: string;
   
+    @Exclude()
     @Column()
     password: string;
   

@@ -39,9 +39,8 @@ export class AuthController {
   logout(@Res() res: Response) {
     res.clearCookie('access_token', {
       httpOnly: true,
-      sameSite: 'lax', // ou 'none' se estiver usando HTTPS e domínio diferente
-      secure: false, // true se for produção com HTTPS
-      // secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
+      secure: true,
     });
     return res.send({ message: 'Logout realizado com sucesso' });
   }

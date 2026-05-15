@@ -1,18 +1,10 @@
 import { Module } from '@nestjs/common';
 import { GrokController } from './grok.controller';
 import { GrokService } from './grok.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { IA_Agent } from 'src/entities/agent.entity';
-import { History } from 'src/entities/history.entity';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([
-          IA_Agent,
-          History,
-        ]),
-    ],
-    controllers: [GrokController],
-    providers: [GrokService]
+  controllers: [GrokController],
+  providers: [GrokService],
+  exports: [GrokService],
 })
 export class GrokModule {}
