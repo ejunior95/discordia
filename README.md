@@ -36,6 +36,7 @@ Contextos suportados:
 - TypeScript
 - MongoDB Atlas com TypeORM
 - JWT em cookie HTTP-only
+- Throttling global com limites curtos e médios
 - OpenAI, Gemini, Deepseek e Grok
 - AWS S3 para upload de avatar
 - Resend para verificação de e-mail
@@ -61,30 +62,37 @@ Crie um arquivo `.env` com base em `.exemplo.env`:
 cp .exemplo.env .env
 ```
 
-Variáveis esperadas:
+Variáveis obrigatórias e opcionais aceitas pela aplicação:
 
-| Variável                    | Uso                                               |
-| --------------------------- | ------------------------------------------------- |
-| `OPENAI_API_KEY`            | Chave da API da OpenAI                            |
-| `GEMINI_API_KEY`            | Chave da API do Gemini                            |
-| `DEEPSEEK_API_BASE_URL`     | URL base da API Deepseek                          |
-| `DEEPSEEK_API_KEY`          | Chave da API Deepseek                             |
-| `GROK_API_BASE_URL`         | URL base da API Grok                              |
-| `GROK_API_KEY`              | Chave da API Grok                                 |
-| `USER_DATABASE`             | Usuário do MongoDB Atlas                          |
-| `PASS_DATABASE`             | Senha do MongoDB Atlas                            |
-| `DATABASE_NAME`             | Nome do banco de dados                            |
-| `AWS_ACCESS_KEY_ID`         | Credencial de acesso AWS                          |
-| `AWS_SECRET_ACCESS_KEY`     | Chave secreta AWS                                 |
-| `AWS_REGION`                | Região do bucket S3                               |
-| `AWS_BUCKET_NAME`           | Bucket usado para avatares                        |
-| `RESEND_API_KEY`            | Chave da Resend para envio de e-mails             |
-| `EMAIL_VERIFICATION_SECRET` | Segredo usado nos tokens de verificação de e-mail |
-| `JWT_SECRET`                | Segredo usado para assinar JWTs                   |
-| `PORT`                      | Porta da API, com padrão `3000`                   |
-| `CORS_ORIGINS`              | Origens permitidas separadas por vírgula          |
+| Variável                    | Uso                                                                                       |
+| --------------------------- | ----------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`            | Chave da API da OpenAI                                                                    |
+| `OPENAI_MODEL`              | Modelo da OpenAI, opcional; padrão `gpt-4.1-mini`                                         |
+| `GEMINI_API_KEY`            | Chave da API do Gemini                                                                    |
+| `GEMINI_MODEL`              | Modelo do Gemini, opcional; padrão `gemini-2.5-flash`                                     |
+| `DEEPSEEK_API_BASE_URL`     | URL base da API Deepseek                                                                  |
+| `DEEPSEEK_API_KEY`          | Chave da API Deepseek                                                                     |
+| `DEEPSEEK_MODEL`            | Modelo da Deepseek, opcional; padrão `deepseek-v4-flash`                                  |
+| `GROK_API_BASE_URL`         | URL base da API Grok                                                                      |
+| `GROK_API_KEY`              | Chave da API Grok                                                                         |
+| `GROK_MODEL`                | Modelo do Grok, opcional; padrão `grok-4.3`                                               |
+| `USER_DATABASE`             | Usuário do MongoDB Atlas                                                                  |
+| `PASS_DATABASE`             | Senha do MongoDB Atlas                                                                    |
+| `DATABASE_NAME`             | Nome do banco de dados                                                                    |
+| `AWS_ACCESS_KEY_ID`         | Credencial de acesso AWS                                                                  |
+| `AWS_SECRET_ACCESS_KEY`     | Chave secreta AWS                                                                         |
+| `AWS_REGION`                | Região do bucket S3                                                                       |
+| `AWS_BUCKET_NAME`           | Bucket usado para avatares                                                                |
+| `RESEND_API_KEY`            | Chave da Resend para envio de e-mails                                                     |
+| `EMAIL_VERIFICATION_SECRET` | Segredo usado nos tokens de verificação de e-mail                                         |
+| `JWT_SECRET`                | Segredo usado para assinar JWTs                                                           |
+| `NODE_ENV`                  | Ambiente de execução; em `production`, o TypeORM não sincroniza entidades automaticamente |
+| `PORT`                      | Porta da API, com padrão `3000`                                                           |
+| `CORS_ORIGINS`              | Origens permitidas separadas por vírgula                                                  |
 
 Por padrão, o CORS aceita `http://localhost:5173` e `https://discordia.app.br`, com credenciais habilitadas para autenticação via cookie.
+
+O Gemini usa `gemini-2.5-flash` por padrão, com thinking desabilitado para priorizar a resposta final. Se uma resposta de `chat` bater no limite de tokens, o serviço tenta continuar automaticamente antes de devolver o texto ao cliente.
 
 ## Executar o projeto
 

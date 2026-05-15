@@ -21,7 +21,8 @@ export class GeminiService {
       throw new Error('Configuração da API Gemini ausente.');
     }
     this.aiInstance = new GoogleGenAI({ apiKey });
-    this.model = this.configService.get<string>('GEMINI_MODEL') ?? 'gemini-2.5-flash';
+    this.model =
+      this.configService.get<string>('GEMINI_MODEL') ?? 'gemini-2.5-flash';
   }
 
   async execute(
@@ -40,17 +41,71 @@ export class GeminiService {
         { role: 'user', parts: [{ text: question }] },
       ];
 
-      const { text } = await this.aiInstance.models.generateContent({
+      const config = {
+        systemInstruction: systemPrompt,
+        maxOutputTokens: dynamicMaxTokens[context],
+        temperature: dynamicTemperature[context],
+        thinkingConfig: {
+          includeThoughts: false,
+          thinkingBudget: 0,
+        },
+      };
+
+      let response = await this.aiInstance.models.generateContent({
         model: this.model,
         contents,
-        config: {
-          systemInstruction: systemPrompt,
-          maxOutputTokens: dynamicMaxTokens[context],
-          temperature: dynamicTemperature[context],
-        },
+        config,
       });
 
-      return { response: text ?? '' };
+      let responseText = response.text ?? '';
+      let candidate = response.candidates?.[0];
+      let continuationAttempts = 0;
+
+      while (
+        context === 'chat' &&
+        candidate?.finishReason === 'MAX_TOKENS' &&
+        continuationAttempts < 2
+      ) {
+        continuationAttempts += 1;
+        this.logger.warn(
+          `Resposta do Gemini atingiu MAX_TOKENS; solicitando continuação ${continuationAttempts}.`,
+        );
+
+        response = await this.aiInstance.models.generateContent({
+          model: this.model,
+          contents: [
+            ...contents,
+            { role: 'model', parts: [{ text: responseText }] },
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: 'Continue exatamente de onde parou. Não repita o trecho anterior e conclua a resposta.',
+                },
+              ],
+            },
+          ],
+          config,
+        });
+
+        responseText += response.text ? `\n${response.text}` : '';
+        candidate = response.candidates?.[0];
+      }
+
+      if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
+        const usage = response.usageMetadata;
+        this.logger.warn(
+          `Resposta do Gemini finalizada com ${candidate.finishReason}${
+            candidate.finishMessage ? `: ${candidate.finishMessage}` : ''
+          }. Tokens: prompt=${usage?.promptTokenCount ?? 'n/a'}, resposta=${
+            usage?.candidatesTokenCount ?? 'n/a'
+          }, pensamentos=${usage?.thoughtsTokenCount ?? 'n/a'}, total=${
+            usage?.totalTokenCount ?? 'n/a'
+          }`,
+        );
+      }
+
+      return { response: responseText };
     } catch (error) {
       this.logger.error('Erro na chamada do Gemini', error as Error);
       throw error;

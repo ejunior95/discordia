@@ -45,7 +45,12 @@ export class ChatGptService {
         temperature: dynamicTemperature[context],
       });
 
-      const assistantReply = response.choices[0]?.message?.content ?? '';
+      const choice = response.choices[0];
+      if (choice?.finish_reason && choice.finish_reason !== 'stop') {
+        this.logger.warn(`Resposta do ChatGPT finalizada com ${choice.finish_reason}`);
+      }
+
+      const assistantReply = choice?.message?.content ?? '';
       return { response: assistantReply };
     } catch (error) {
       this.logger.error('Erro na chamada do ChatGPT', error as Error);

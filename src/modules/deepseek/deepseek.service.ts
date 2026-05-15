@@ -49,7 +49,12 @@ export class DeepseekService {
         temperature: dynamicTemperature[context],
       });
 
-      const answer = response.choices[0]?.message?.content;
+      const choice = response.choices[0];
+      if (choice?.finish_reason && choice.finish_reason !== 'stop') {
+        this.logger.warn(`Resposta da Deepseek finalizada com ${choice.finish_reason}`);
+      }
+
+      const answer = choice?.message?.content;
       if (!answer) {
         this.logger.warn('Resposta da Deepseek veio sem conteúdo');
         throw new InternalServerErrorException('Resposta vazia da Deepseek.');

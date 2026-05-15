@@ -17,8 +17,11 @@ export class GrokService {
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('GROK_API_KEY');
-    const baseURL =
+    const configuredBaseURL =
       this.configService.get<string>('GROK_API_BASE_URL') ?? 'https://api.x.ai/v1';
+    const baseURL = configuredBaseURL.replace(/\/$/, '').endsWith('/v1')
+      ? configuredBaseURL.replace(/\/$/, '')
+      : `${configuredBaseURL.replace(/\/$/, '')}/v1`;
 
     if (!apiKey) {
       this.logger.error('GROK_API_KEY não configurada');
@@ -49,7 +52,12 @@ export class GrokService {
         temperature: dynamicTemperature[context],
       });
 
-      const assistantReply = response.choices[0]?.message?.content ?? '';
+      const choice = response.choices[0];
+      if (choice?.finish_reason && choice.finish_reason !== 'stop') {
+        this.logger.warn(`Resposta do Grok finalizada com ${choice.finish_reason}`);
+      }
+
+      const assistantReply = choice?.message?.content ?? '';
       return { response: assistantReply };
     } catch (error) {
       this.logger.error('Erro na chamada do Grok', error as Error);
