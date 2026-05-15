@@ -11,7 +11,7 @@ export const dynamicTemperature: Record<ChatContext, number> = {
 };
 
 export const dynamicMaxTokens: Record<ChatContext, number> = {
-  chat: 400,
+  chat: 2048,
   'hangman-chooser': 60,
   'hangman-guesser': 30,
   chess: 30,
