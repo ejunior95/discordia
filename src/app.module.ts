@@ -14,6 +14,8 @@ import { IA_Agent } from './entities/agent.entity';
 import { Session } from './entities/session.entity';
 import { SharedModule } from './shared/shared.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { TtsModule } from './modules/tts/tts.module';
+import { MusicGenerationModule } from './modules/music-generation/music-generation.module';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     GrokModule,
     UsersModule,
     AuthModule,
+    TtsModule,
+    MusicGenerationModule,
   ],
   controllers: [AppController],
   providers: [

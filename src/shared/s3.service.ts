@@ -43,4 +43,18 @@ export class S3Service {
 
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
   }
+
+  async uploadBuffer(buffer: Buffer, key: string, contentType: string): Promise<string> {
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: contentType,
+        ACL: 'public-read',
+      }),
+    );
+
+    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
+  }
 }

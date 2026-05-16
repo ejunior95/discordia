@@ -11,6 +11,10 @@ import { CreateAgentDto } from './dtos/create-agent.dto';
 import { Session } from './entities/session.entity';
 import { AgentName, ChatContext } from './shared/global.service';
 import { HistoryService } from './shared/history.service';
+import { S3Service } from './shared/s3.service';
+import { ElevenLabsService } from './modules/tts/elevenlabs.service';
+import { MusicGenerationService } from './modules/music-generation/music-generation.service';
+import { v4 as uuid } from 'uuid';
 import {
   buildGameActionPrompt,
   GameActionContext,
@@ -40,6 +44,9 @@ export class AppService {
     private readonly geminiService: GeminiService,
     private readonly grokService: GrokService,
     private readonly historyService: HistoryService,
+    private readonly s3Service: S3Service,
+    private readonly elevenLabsService: ElevenLabsService,
+    private readonly musicGenerationService: MusicGenerationService,
   ) {
     this.providers = {
       'chat-gpt': this.chatGptService,
@@ -107,9 +114,54 @@ export class AppService {
     }
 
     const prompt = buildGameActionPrompt(context, agent, payload);
-  const result = await provider.execute(context, prompt, []);
+    const result = await provider.execute(context, prompt, []);
 
     await this.historyService.add(context, userId, 'user', summarizeGameAction(context, payload));
+
+    // RPG: gerar TTS sincronamente quando o turno é do mestre. Falha aborta o turno.
+    if (context === 'rpg' && payload.master === agent && result.response?.trim()) {
+      try {
+        const tts = await this.elevenLabsService.synthesize(result.response);
+        const key = `rpg-audio/${userId}/${uuid()}.mp3`;
+        const audioUrl = await this.s3Service.uploadBuffer(tts.buffer, key, tts.mimeType);
+
+        await this.historyService.add(context, userId, 'assistant', result.response, agent, {
+          audioUrl,
+          audioMeta: {
+            provider: 'elevenlabs',
+            status: 'ready',
+            voiceId: tts.voiceId,
+            model: tts.model,
+          },
+        });
+
+        return { [agent]: { ...result, audio_url: audioUrl } };
+      } catch (error) {
+        this.logger.error(`Falha TTS RPG: ${(error as Error).message}`);
+        // NÃO persiste history do assistant — turno é abortado.
+        throw error;
+      }
+    }
+
+    // Rap battle: cria task no Sunor (fire-and-attach). Falha NÃO aborta o verso.
+    if (context === 'rap-battle' && result.response?.trim()) {
+      const historyId = await this.historyService.add(
+        context,
+        userId,
+        'assistant',
+        result.response,
+        agent,
+      );
+      const theme = typeof payload.theme === 'string' ? payload.theme : '';
+      const musicResult = await this.musicGenerationService.createRapVerseTask(
+        historyId,
+        result.response,
+        theme,
+        userId,
+      );
+      return { [agent]: { ...result, ...musicResult } };
+    }
+
     await this.historyService.add(context, userId, 'assistant', result.response, agent);
 
     return { [agent]: result };
