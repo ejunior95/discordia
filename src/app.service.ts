@@ -11,6 +11,11 @@ import { CreateAgentDto } from './dtos/create-agent.dto';
 import { Session } from './entities/session.entity';
 import { AgentName, ChatContext } from './shared/global.service';
 import { HistoryService } from './shared/history.service';
+import {
+  buildGameActionPrompt,
+  GameActionContext,
+  summarizeGameAction,
+} from './utils/gamePromptBuilders';
 
 interface AiProvider {
   execute(
@@ -86,6 +91,26 @@ export class AppService {
 
     await this.historyService.add('chat', userId, 'user', question);
     await this.historyService.add('chat', userId, 'assistant', result.response, agent);
+
+    return { [agent]: result };
+  }
+
+  async askGameAction(
+    context: GameActionContext,
+    agent: AgentName,
+    payload: Record<string, unknown>,
+    userId: string,
+  ) {
+    const provider = this.providers[agent];
+    if (!provider) {
+      throw new BadRequestException(`Agente de IA "${agent}" não é suportado.`);
+    }
+
+    const prompt = buildGameActionPrompt(context, agent, payload);
+  const result = await provider.execute(context, prompt, []);
+
+    await this.historyService.add(context, userId, 'user', summarizeGameAction(context, payload));
+    await this.historyService.add(context, userId, 'assistant', result.response, agent);
 
     return { [agent]: result };
   }

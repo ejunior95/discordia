@@ -20,7 +20,7 @@ import { IA_Agent } from './entities/agent.entity';
 import { CreateAgentDto } from './dtos/create-agent.dto';
 import { UserResponseDto } from './modules/users/dtos/response-user.dto';
 import { ChatContext } from './shared/global.service';
-import { AskAllDto, AskOneDto, HangmanDto, StartSessionDto } from './dtos/app.dtos';
+import { AskAllDto, AskOneDto, GameActionDto, HangmanDto, StartSessionDto } from './dtos/app.dtos';
 
 @Controller()
 export class AppController {
@@ -70,6 +70,28 @@ export class AppController {
     } catch (error) {
       return res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: (error as Error).message });
+    }
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/ai/game-action')
+  async askGameAction(
+    @Body() body: GameActionDto,
+    @Req() req: Request & { user: UserResponseDto },
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.appService.askGameAction(
+        body.context,
+        body.agent,
+        body.payload,
+        req.user.id,
+      );
+      return res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      return res
+        .status(error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ message: (error as Error).message });
     }
   }
