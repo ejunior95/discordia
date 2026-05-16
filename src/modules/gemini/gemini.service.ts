@@ -22,7 +22,7 @@ export class GeminiService {
     }
     this.aiInstance = new GoogleGenAI({ apiKey });
     this.model =
-      this.configService.get<string>('GEMINI_MODEL') ?? 'gemini-2.5-flash';
+      this.configService.get<string>('GEMINI_MODEL') ?? 'gemini-3.1-flash-lite';
   }
 
   async execute(
