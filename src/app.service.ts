@@ -119,7 +119,13 @@ export class AppService {
     await this.historyService.add(context, userId, 'user', summarizeGameAction(context, payload));
 
     // RPG: gerar TTS sincronamente quando o turno é do mestre. Falha aborta o turno.
-    if (context === 'rpg' && payload.master === agent && result.response?.trim()) {
+    const rpgCampaign =
+      context === 'rpg' && typeof payload.campaign === 'object' && payload.campaign !== null
+        ? (payload.campaign as Record<string, unknown>)
+        : null;
+    const isRpgMasterTurn = rpgCampaign?.master === agent;
+
+    if (context === 'rpg' && isRpgMasterTurn && result.response?.trim()) {
       try {
         const tts = await this.elevenLabsService.synthesize(result.response);
         const key = `rpg-audio/${userId}/${uuid()}.mp3`;
