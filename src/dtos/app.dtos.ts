@@ -48,3 +48,10 @@ export class GameActionDto {
   @IsObject({ message: 'Payload da ação de jogo inválido!' })
   payload: Record<string, unknown>;
 }
+
+export class VoteRoundDto {
+  @IsIn(ALLOWED_AGENTS as unknown as string[], {
+    message: 'Agente de IA não enviado ou inválido!',
+  })
+  agent: AgentName;
+}

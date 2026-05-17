@@ -16,6 +16,8 @@ import { SharedModule } from './shared/shared.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TtsModule } from './modules/tts/tts.module';
 import { MusicGenerationModule } from './modules/music-generation/music-generation.module';
+import { StatsModule } from './modules/stats/stats.module';
+import { Round } from './entities/round.entity';
 
 @Module({
   imports: [
@@ -42,8 +44,9 @@ import { MusicGenerationModule } from './modules/music-generation/music-generati
       },
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([IA_Agent, Session]),
+    TypeOrmModule.forFeature([IA_Agent, Session, Round]),
     SharedModule,
+    StatsModule,
     ChatGptModule,
     DeepseekModule,
     GeminiModule,

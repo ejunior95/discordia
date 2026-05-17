@@ -20,7 +20,7 @@ import { IA_Agent } from './entities/agent.entity';
 import { CreateAgentDto } from './dtos/create-agent.dto';
 import { UserResponseDto } from './modules/users/dtos/response-user.dto';
 import { ChatContext } from './shared/global.service';
-import { AskAllDto, AskOneDto, GameActionDto, HangmanDto, StartSessionDto } from './dtos/app.dtos';
+import { AskAllDto, AskOneDto, GameActionDto, HangmanDto, StartSessionDto, VoteRoundDto } from './dtos/app.dtos';
 
 @Controller()
 export class AppController {
@@ -208,6 +208,27 @@ export class AppController {
       return await this.appService.updateIaAgent(id, body);
     } catch (error) {
       throw new InternalServerErrorException(`Erro ao atualizar agente de IA - ${error}`);
+    }
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/rounds/:id/vote')
+  async voteOnRound(
+    @Param('id') id: string,
+    @Body() body: VoteRoundDto,
+    @Req() req: Request & { user: UserResponseDto },
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.appService.voteOnRound(id, body.agent, req.user.id);
+      return res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        return res.status(error.getStatus()).json({ message: error.message });
+      }
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: (error as Error).message });
     }
   }
 }

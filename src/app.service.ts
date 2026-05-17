@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ChatGptService } from './modules/chat-gpt/chat-gpt.service';
 import { DeepseekService } from './modules/deepseek/deepseek.service';
 import { GeminiService } from './modules/gemini/gemini.service';
@@ -9,11 +9,13 @@ import { MongoRepository } from 'typeorm';
 import { MongoServerError, ObjectId } from 'mongodb';
 import { CreateAgentDto } from './dtos/create-agent.dto';
 import { Session } from './entities/session.entity';
+import { Round } from './entities/round.entity';
 import { AgentName, ChatContext } from './shared/global.service';
 import { HistoryService } from './shared/history.service';
 import { S3Service } from './shared/s3.service';
 import { ElevenLabsService } from './modules/tts/elevenlabs.service';
 import { MusicGenerationService } from './modules/music-generation/music-generation.service';
+import { StatsService } from './modules/stats/stats.service';
 import { v4 as uuid } from 'uuid';
 import {
   buildGameActionPrompt,
@@ -39,6 +41,8 @@ export class AppService {
     private readonly agentRepository: MongoRepository<IA_Agent>,
     @InjectRepository(Session)
     private readonly sessionRepository: MongoRepository<Session>,
+    @InjectRepository(Round)
+    private readonly roundRepository: MongoRepository<Round>,
     private readonly chatGptService: ChatGptService,
     private readonly deepseekService: DeepseekService,
     private readonly geminiService: GeminiService,
@@ -47,6 +51,7 @@ export class AppService {
     private readonly s3Service: S3Service,
     private readonly elevenLabsService: ElevenLabsService,
     private readonly musicGenerationService: MusicGenerationService,
+    private readonly statsService: StatsService,
   ) {
     this.providers = {
       'chat-gpt': this.chatGptService,
@@ -84,7 +89,27 @@ export class AppService {
         ),
     );
 
-    return responses;
+    // Persiste o round e atualiza stats
+    const roundDoc = this.roundRepository.create({
+      user_id: userId,
+      question,
+      responses: agents.map((name) => ({
+        agent: name,
+        content: responses[name].response,
+        error: responses[name].error,
+      })),
+      winner_agent: null,
+      voted_at: null,
+    });
+    const savedRound = await this.roundRepository.save(roundDoc);
+    const agentsWithResponse = agents.filter((name) => responses[name].response);
+    try {
+      await this.statsService.incrementOnNewRound(agentsWithResponse);
+    } catch (err) {
+      this.logger.error(`Falha ao atualizar stats no novo round: ${(err as Error).message}`);
+    }
+
+    return { roundId: savedRound._id.toString(), responses };
   }
 
   async askToOne(question: string, agent: AgentName, userId: string) {
@@ -258,5 +283,47 @@ export class AppService {
     }
     Object.assign(agent, data);
     return this.agentRepository.save(agent);
+  }
+
+  async voteOnRound(roundId: string, agent: AgentName, userId: string) {
+    let _id: ObjectId;
+    try {
+      _id = new ObjectId(roundId);
+    } catch {
+      throw new BadRequestException('ID de round inválido');
+    }
+
+    const round = await this.roundRepository.findOne({ where: { _id } });
+    if (!round) throw new NotFoundException('Round não encontrado');
+    if (round.user_id !== userId) {
+      throw new ForbiddenException('Apenas o autor do round pode votar');
+    }
+    if (round.winner_agent) {
+      throw new ConflictException('Voto já registrado para este round');
+    }
+    const hasResponse = round.responses.find((r) => r.agent === agent && r.content);
+    if (!hasResponse) {
+      throw new BadRequestException('Agente não respondeu neste round');
+    }
+
+    const votedAt = new Date();
+    // Update atômico: só grava se ainda não houver vencedor
+    const result = await this.roundRepository.findOneAndUpdate(
+      { _id, winner_agent: null },
+      { $set: { winner_agent: agent, voted_at: votedAt } },
+      { returnDocument: 'after' },
+    );
+    const updated = (result as unknown as { value: Round | null })?.value ?? result;
+    if (!updated || (updated as Round).winner_agent !== agent) {
+      throw new ConflictException('Voto já registrado para este round');
+    }
+
+    try {
+      await this.statsService.incrementOnVote(agent, votedAt);
+    } catch (err) {
+      this.logger.error(`Falha ao atualizar stats no voto: ${(err as Error).message}`);
+    }
+
+    return { roundId, winner: agent, votedAt };
   }
 }
