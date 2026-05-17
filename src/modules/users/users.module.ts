@@ -6,9 +6,10 @@ import { User } from './entities/user.entity';
 import { S3Service } from 'src/shared/s3.service';
 import { EmailService } from 'src/shared/email.service';
 import { JwtService } from '@nestjs/jwt';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User])],
+  imports: [TypeOrmModule.forFeature([User]), BillingModule],
   controllers: [UsersController],
   providers: [
     UsersService, 

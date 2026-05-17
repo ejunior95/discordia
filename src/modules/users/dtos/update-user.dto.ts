@@ -1,4 +1,13 @@
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { UserSocialsDto } from './create-user.dto';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -11,7 +20,7 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
-  @MinLength(6, { message: 'A senha deve ter no mínimo 6 caracteres' })
+  @MinLength(8, { message: 'A senha deve ter no mínimo 8 caracteres' })
   password?: string;
 
   @IsOptional()
@@ -22,4 +31,14 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(280, { message: 'A bio deve ter no máximo 280 caracteres' })
+  bio?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UserSocialsDto)
+  socials?: UserSocialsDto;
 }

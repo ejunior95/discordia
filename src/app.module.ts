@@ -18,6 +18,7 @@ import { TtsModule } from './modules/tts/tts.module';
 import { MusicGenerationModule } from './modules/music-generation/music-generation.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { Round } from './entities/round.entity';
+import { BillingModule } from './modules/billing/billing.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { Round } from './entities/round.entity';
     AuthModule,
     TtsModule,
     MusicGenerationModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [

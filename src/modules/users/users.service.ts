@@ -11,6 +11,7 @@ import { EmailService } from 'src/shared/email.service';
 import { ConfigService } from '@nestjs/config';
 import { S3Service } from 'src/shared/s3.service';
 import { compare } from 'bcryptjs';
+import { BillingService } from '../billing/billing.service';
 
 @Injectable()
 export class UsersService {
@@ -21,12 +22,15 @@ export class UsersService {
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
     private readonly s3Service: S3Service,
+    private readonly billingService: BillingService,
   ) {}
 
   async create(data: CreateUserDto, file?: Express.Multer.File): Promise<User> {
+    const { acceptTerms, ...userData } = data;
     const user = this.userRepository.create({
-      ...data,
+      ...userData,
       password: await hashPassword(data.password),
+      terms_accepted_at: acceptTerms ? new Date() : undefined,
     });
 
     const result = await this.userRepository.save(user);
@@ -35,6 +39,14 @@ export class UsersService {
       const url = await this.s3Service.uploadFile(file, `avatars/${result._id}`);
       result.avatar = url;
       await this.userRepository.update(result._id, { avatar: url });
+    }
+
+    try {
+      await this.billingService.ensureFreeSubscription(result._id.toString());
+    } catch (err) {
+      // não bloqueia o cadastro se billing falhar
+      // eslint-disable-next-line no-console
+      console.warn('Falha ao criar subscription free:', (err as Error).message);
     }
   
   
@@ -115,6 +127,17 @@ export class UsersService {
         throw new BadRequestException('Senha atual incorreta.');
       }
       user.password = await hashPassword(data.password);
+    }
+
+    if (data.bio !== undefined) {
+      user.bio = data.bio;
+    }
+
+    if (data.socials !== undefined) {
+      user.socials = {
+        ...(user.socials ?? {}),
+        ...data.socials,
+      };
     }
     
     if (file) {

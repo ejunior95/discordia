@@ -184,6 +184,66 @@ export class StatsService {
     };
   }
 
+  /** Estatísticas agregadas por usuário (usadas em Profile/Subscription). */
+  async getUserStats(userId: string) {
+    const rounds = await this.roundsRepo.find({ where: { user_id: userId } });
+
+    const totalRounds = rounds.length;
+    const voted = rounds.filter((r) => !!r.winner_agent && !!r.voted_at);
+    const totalVotes = voted.length;
+
+    const votesByAgent = emptyWeeklyByAgent();
+    for (const r of voted) {
+      if (r.winner_agent) votesByAgent[r.winner_agent] += 1;
+    }
+
+    const uniqueAgentsVoted = ALLOWED_AGENTS.filter((a) => votesByAgent[a] > 0).length;
+
+    let topAgent: AgentName | null = null;
+    let topAgentVotes = 0;
+    for (const a of ALLOWED_AGENTS) {
+      if (votesByAgent[a] > topAgentVotes) {
+        topAgent = a;
+        topAgentVotes = votesByAgent[a];
+      }
+    }
+    const topAgentShare = totalVotes > 0 ? topAgentVotes / totalVotes : 0;
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const roundsThisMonth = rounds.filter(
+      (r) => new Date(r.created_at).getTime() >= monthStart.getTime(),
+    ).length;
+
+    return {
+      totalRounds,
+      totalVotes,
+      uniqueAgentsVoted,
+      votesByAgent,
+      topAgent,
+      topAgentVotes,
+      topAgentShare,
+      roundsThisMonth,
+    };
+  }
+
+  /** Últimos N rounds do usuário (ordenados por data). */
+  async getRecentUserRounds(userId: string, limit = 5) {
+    const rounds = await this.roundsRepo.find({
+      where: { user_id: userId },
+    });
+    const sorted = [...rounds].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+    return sorted.slice(0, limit).map((r) => ({
+      id: r._id.toString(),
+      question: r.question,
+      winner: r.winner_agent ?? null,
+      askedAt: r.created_at,
+      votedAt: r.voted_at ?? null,
+    }));
+  }
+
   /** Reconstrói o documento `stats` varrendo todos os rounds. */
   async recompute(): Promise<Stats> {
     const allRounds = await this.roundsRepo.find();

@@ -8,7 +8,13 @@ import {
   } from 'typeorm';
   import { ObjectId } from 'mongodb';
   import { Exclude } from 'class-transformer';
-  
+
+  export class UserSocials {
+    twitter?: string;
+    github?: string;
+    linkedin?: string;
+  }
+
   @Entity('users')
   export class User {
     @ObjectIdColumn()
@@ -29,6 +35,15 @@ import {
 
     @Column({ default: false })
     isVerified: boolean;
+
+    @Column({ nullable: true })
+    bio?: string;
+
+    @Column({ type: 'json', nullable: true })
+    socials?: UserSocials;
+
+    @Column({ type: 'timestamp', nullable: true })
+    terms_accepted_at?: Date;
   
     @CreateDateColumn({ type: 'timestamp' })
     created_at: Date;
