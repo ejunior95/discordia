@@ -69,28 +69,34 @@ export class DeepseekService {
       }
 
       let answer = choice?.message?.content;
-      if (
-        !answer &&
-        choice?.finish_reason === 'length' &&
-        HANGMAN_CONTEXTS.includes(context)
-      ) {
+      if (!answer && choice?.finish_reason === 'length') {
+        const isHangman = HANGMAN_CONTEXTS.includes(context);
+        const baseMax = dynamicMaxTokens[context];
+        // Para hangman, basta um teto pequeno; para demais (rap-battle, rpg, chat)
+        // dobramos o limite para dar margem ao modelo terminar a resposta.
+        const retryMaxTokens = isHangman
+          ? Math.max(baseMax, 256)
+          : Math.min(Math.max(baseMax * 2, 1024), 4096);
+
+        const retryHintByContext: Partial<Record<ChatContext, string>> = {
+          'hangman-chooser':
+            'Tente novamente. Responda somente com UMA palavra em MAIÚSCULAS, sem acentos, espaços ou explicações.',
+          'hangman-guesser':
+            'Tente novamente. Responda somente com UMA letra maiúscula de A a Z, sem explicações.',
+        };
+        const retryHint =
+          retryHintByContext[context] ??
+          'Sua resposta anterior veio vazia por limite de tokens. Reenvie a resposta agora, completa e direta, sem preâmbulos.';
+
         this.logger.warn(
-          'Resposta da Deepseek veio vazia por limite; tentando novamente.',
+          `Resposta da Deepseek veio vazia por limite (context=${context}); tentando novamente com max_tokens=${retryMaxTokens}.`,
         );
+
         const retryResponse = await this.aiInstance.chat.completions.create({
           model: this.model,
-          messages: [
-            ...messages,
-            {
-              role: 'user',
-              content:
-                context === 'hangman-chooser'
-                  ? 'Tente novamente. Responda somente com UMA palavra em MAIÚSCULAS, sem acentos, espaços ou explicações.'
-                  : 'Tente novamente. Responda somente com UMA letra maiúscula de A a Z, sem explicações.',
-            },
-          ],
-          max_tokens: Math.max(dynamicMaxTokens[context], 256),
-          temperature: 0.2,
+          messages: [...messages, { role: 'user', content: retryHint }],
+          max_tokens: retryMaxTokens,
+          temperature: isHangman ? 0.2 : dynamicTemperature[context],
         });
 
         const retryChoice = retryResponse.choices[0];
