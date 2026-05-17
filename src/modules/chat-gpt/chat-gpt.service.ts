@@ -25,6 +25,10 @@ export class ChatGptService {
     this.model = this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-4.1-mini';
   }
 
+  getModelName(): string {
+    return this.model;
+  }
+
   async execute(
     context: ChatContext,
     question: string,

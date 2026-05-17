@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { ChatGptService } from './modules/chat-gpt/chat-gpt.service';
 import { DeepseekService } from './modules/deepseek/deepseek.service';
 import { GeminiService } from './modules/gemini/gemini.service';
@@ -7,7 +7,7 @@ import { IA_Agent } from './entities/agent.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MongoRepository } from 'typeorm';
 import { MongoServerError, ObjectId } from 'mongodb';
-import { CreateAgentDto } from './dtos/create-agent.dto';
+import { CreateAgentDto, UpdateAgentDto } from './dtos/create-agent.dto';
 import { Session } from './entities/session.entity';
 import { Round } from './entities/round.entity';
 import { AgentName, ChatContext } from './shared/global.service';
@@ -32,7 +32,7 @@ interface AiProvider {
 }
 
 @Injectable()
-export class AppService {
+export class AppService implements OnModuleInit {
   private readonly logger = new Logger(AppService.name);
   private readonly providers: Record<AgentName, AiProvider>;
 
@@ -59,6 +59,39 @@ export class AppService {
       deepseek: this.deepseekService,
       grok: this.grokService,
     };
+  }
+
+  async onModuleInit() {
+    await this.seedDefaultAgents();
+  }
+
+  private async seedDefaultAgents() {
+    const defaults: { name: AgentName; label: string; model: string }[] = [
+      { name: 'chat-gpt', label: 'ChatGPT', model: this.chatGptService.getModelName() },
+      { name: 'gemini', label: 'Gemini', model: this.geminiService.getModelName() },
+      { name: 'deepseek', label: 'DeepSeek', model: this.deepseekService.getModelName() },
+      { name: 'grok', label: 'Grok', model: this.grokService.getModelName() },
+    ];
+
+    for (const def of defaults) {
+      try {
+        const existing = await this.agentRepository.findOne({ where: { name: def.name } });
+        if (!existing) {
+          await this.agentRepository.save(this.agentRepository.create(def));
+          this.logger.log(`Agent seed criado: ${def.name} (${def.model})`);
+          continue;
+        }
+        // mantém label/model atualizados conforme env
+        if (existing.model !== def.model || !existing.label) {
+          existing.model = def.model;
+          existing.label = existing.label || def.label;
+          await this.agentRepository.save(existing);
+          this.logger.log(`Agent atualizado: ${def.name} -> model=${def.model}`);
+        }
+      } catch (err) {
+        this.logger.error(`Falha no seed do agente ${def.name}: ${(err as Error).message}`);
+      }
+    }
   }
 
   async askToAll(question: string, userId: string) {
@@ -276,12 +309,13 @@ export class AppService {
     return agent;
   }
 
-  async updateIaAgent(id: string, data: { score: number }) {
+  async updateIaAgent(id: string, data: UpdateAgentDto) {
     const agent = await this.agentRepository.findOneBy({ _id: new ObjectId(id) });
     if (!agent) {
       throw new NotFoundException('Agente de IA não encontrado');
     }
-    Object.assign(agent, data);
+    if (data.label !== undefined) agent.label = data.label;
+    if (data.model !== undefined) agent.model = data.model;
     return this.agentRepository.save(agent);
   }
 

@@ -17,7 +17,7 @@ import { AppService } from './app.service';
 import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { IA_Agent } from './entities/agent.entity';
-import { CreateAgentDto } from './dtos/create-agent.dto';
+import { CreateAgentDto, UpdateAgentDto } from './dtos/create-agent.dto';
 import { UserResponseDto } from './modules/users/dtos/response-user.dto';
 import { ChatContext } from './shared/global.service';
 import { AskAllDto, AskOneDto, GameActionDto, HangmanDto, StartSessionDto, VoteRoundDto } from './dtos/app.dtos';
@@ -166,7 +166,6 @@ export class AppController {
     }
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Get('/find-all-agents')
   async findAllAgents(): Promise<IA_Agent[]> {
     try {
@@ -202,7 +201,7 @@ export class AppController {
   @Patch('/update-agent/:id')
   async updateAgent(
     @Param('id') id: string,
-    @Body() body: { score: number },
+    @Body() body: UpdateAgentDto,
   ): Promise<IA_Agent> {
     try {
       return await this.appService.updateIaAgent(id, body);

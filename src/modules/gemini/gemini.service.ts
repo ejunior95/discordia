@@ -25,6 +25,10 @@ export class GeminiService {
       this.configService.get<string>('GEMINI_MODEL') ?? 'gemini-3.1-flash-lite';
   }
 
+  getModelName(): string {
+    return this.model;
+  }
+
   async execute(
     context: ChatContext,
     question: string,

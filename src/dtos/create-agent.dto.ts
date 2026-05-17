@@ -1,7 +1,29 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { ALLOWED_AGENTS, AgentName } from 'src/shared/global.service';
 
 export class CreateAgentDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  @IsIn([...ALLOWED_AGENTS])
+  name: AgentName;
+
+  @IsString()
+  @IsNotEmpty()
+  label: string;
+
+  @IsString()
+  @IsNotEmpty()
+  model: string;
+}
+
+export class UpdateAgentDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  label?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  model?: string;
 }

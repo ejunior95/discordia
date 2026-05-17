@@ -37,6 +37,10 @@ export class DeepseekService {
       this.configService.get<string>('DEEPSEEK_MODEL') ?? 'deepseek-v4-flash';
   }
 
+  getModelName(): string {
+    return this.model;
+  }
+
   async execute(
     context: ChatContext,
     question: string,

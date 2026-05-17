@@ -15,9 +15,12 @@ import {
   
     @Column({ unique: true })
     name: string;
-  
-    @Column({ default: 0 })
-    score: number;
+
+    @Column()
+    label: string;
+
+    @Column()
+    model: string;
   
     @CreateDateColumn({ type: 'timestamp' })
     created_at?: Date;

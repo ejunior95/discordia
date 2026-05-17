@@ -32,6 +32,10 @@ export class GrokService {
     this.model = this.configService.get<string>('GROK_MODEL') ?? 'grok-4.3';
   }
 
+  getModelName(): string {
+    return this.model;
+  }
+
   async execute(
     context: ChatContext,
     question: string,
