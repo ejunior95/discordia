@@ -5,6 +5,7 @@ import {
   IsObject,
   IsString,
   ArrayMinSize,
+  IsOptional,
 } from 'class-validator';
 import {
   ALLOWED_AGENTS,
@@ -13,6 +14,10 @@ import {
   ChatContext,
 } from '../shared/global.service';
 import type { GameActionContext } from '../utils/gamePromptBuilders';
+import {
+  ORCHESTRATOR_TARGET_KINDS,
+  OrchestratorTargetKind,
+} from '../modules/orchestrator/orchestrator.types';
 
 export class AskAllDto {
   @IsString()
@@ -31,6 +36,10 @@ export class HangmanDto {
   @IsString()
   @IsNotEmpty()
   question: string;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
 }
 
 export class StartSessionDto {
@@ -61,6 +70,21 @@ export class GameActionDto {
 
   @IsObject({ message: 'Payload da ação de jogo inválido!' })
   payload: Record<string, unknown>;
+}
+
+export class OrchestratorValidateDto {
+  @IsIn(ORCHESTRATOR_TARGET_KINDS, {
+    message: 'Tipo de validação inválido!',
+  })
+  kind: OrchestratorTargetKind;
+
+  @IsString()
+  @IsNotEmpty({ message: 'Texto para validação não enviado ou inválido!' })
+  text: string;
+
+  @IsOptional()
+  @IsObject({ message: 'Metadados da validação inválidos!' })
+  metadata?: Record<string, unknown>;
 }
 
 export class VoteRoundDto {

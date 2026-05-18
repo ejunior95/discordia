@@ -25,6 +25,7 @@ import {
   AskOneDto,
   GameActionDto,
   HangmanDto,
+  OrchestratorValidateDto,
   StartSessionDto,
   VoteRoundDto,
 } from './dtos/app.dtos';
@@ -32,10 +33,16 @@ import { RequiresCredits } from './modules/credits/requires-credits.decorator';
 import { CreditsGuard } from './modules/credits/credits.guard';
 import { CreditsRefundInterceptor } from './modules/credits/credits-refund.interceptor';
 import { UseInterceptors } from '@nestjs/common';
+import { OrchestratorGuard } from './modules/orchestrator/orchestrator.guard';
+import { OrchestratorTarget } from './modules/orchestrator/orchestrator-target.decorator';
+import { OrchestratorService } from './modules/orchestrator/orchestrator.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly orchestratorService: OrchestratorService,
+  ) {}
 
   @Get('/health')
   healthCheck(@Res() res: Response) {
@@ -51,8 +58,9 @@ export class AppController {
     });
   }
 
-  @UseGuards(AuthGuard('jwt'), CreditsGuard)
+  @UseGuards(AuthGuard('jwt'), OrchestratorGuard, CreditsGuard)
   @UseInterceptors(CreditsRefundInterceptor)
+  @OrchestratorTarget('chat')
   @RequiresCredits('CHAT_ASK_ALL')
   @Post('/ask-to-all')
   async askToAllAgents(
@@ -70,8 +78,9 @@ export class AppController {
     }
   }
 
-  @UseGuards(AuthGuard('jwt'), CreditsGuard)
+  @UseGuards(AuthGuard('jwt'), OrchestratorGuard, CreditsGuard)
   @UseInterceptors(CreditsRefundInterceptor)
+  @OrchestratorTarget('chat')
   @RequiresCredits('CHAT_ASK_ONE')
   @Post('/ask-to-one')
   async askToOnlyOneAgent(
@@ -93,8 +102,9 @@ export class AppController {
     }
   }
 
-  @UseGuards(AuthGuard('jwt'), CreditsGuard)
+  @UseGuards(AuthGuard('jwt'), OrchestratorGuard, CreditsGuard)
   @UseInterceptors(CreditsRefundInterceptor)
+  @OrchestratorTarget('game-action')
   @RequiresCredits('GAME_ACTION')
   @Post('/ai/game-action')
   async askGameAction(
@@ -121,8 +131,9 @@ export class AppController {
     }
   }
 
-  @UseGuards(AuthGuard('jwt'), CreditsGuard)
+  @UseGuards(AuthGuard('jwt'), OrchestratorGuard, CreditsGuard)
   @UseInterceptors(CreditsRefundInterceptor)
+  @OrchestratorTarget('hangman')
   @RequiresCredits('GAME_ACTION')
   @Post('/hangman/:idSession')
   async hangmanGame(
@@ -157,6 +168,25 @@ export class AppController {
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ message: (error as Error).message });
     }
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/orchestrator/validate')
+  async validateWithOrchestrator(@Body() body: OrchestratorValidateDto) {
+    const verdict = await this.orchestratorService.validate(
+      body.kind,
+      body.text,
+      body.metadata,
+    );
+
+    if (verdict.severity === 'block') {
+      throw new HttpException(
+        verdict.reason ?? 'Input rejeitado pelo orquestrador.',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    return verdict;
   }
 
   @UseGuards(AuthGuard('jwt'))

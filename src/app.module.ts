@@ -21,6 +21,7 @@ import { Round } from './entities/round.entity';
 import { BillingModule } from './modules/billing/billing.module';
 import { CreditsModule } from './modules/credits/credits.module';
 import { CreditsBalanceInterceptor } from './modules/credits/credits-balance.interceptor';
+import { OrchestratorModule } from './modules/orchestrator/orchestrator.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { CreditsBalanceInterceptor } from './modules/credits/credits-balance.int
     MusicGenerationModule,
     BillingModule,
     CreditsModule,
+    OrchestratorModule,
   ],
   controllers: [AppController],
   providers: [
