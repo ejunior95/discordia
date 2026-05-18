@@ -11,6 +11,27 @@ import {
 const RAP_TAGS = 'rap battle, hip-hop, beat';
 const RAP_NEGATIVE_TAGS = 'english vocals, instrumental';
 
+export type VoiceGender = 'male' | 'female';
+
+function buildVoiceTags(voiceGender?: VoiceGender): {
+  tags: string;
+  negativeTags: string;
+} {
+  if (voiceGender === 'female') {
+    return {
+      tags: `${RAP_TAGS}, female vocals`,
+      negativeTags: `${RAP_NEGATIVE_TAGS}, male vocals`,
+    };
+  }
+  if (voiceGender === 'male') {
+    return {
+      tags: `${RAP_TAGS}, male vocals`,
+      negativeTags: `${RAP_NEGATIVE_TAGS}, female vocals`,
+    };
+  }
+  return { tags: RAP_TAGS, negativeTags: RAP_NEGATIVE_TAGS };
+}
+
 export interface RapTaskAttachResult {
   musicTaskId?: string;
   musicStatus: 'pending' | 'failed';
@@ -46,15 +67,17 @@ export class MusicGenerationService {
     lyrics: string,
     theme: string,
     _userId: string,
+    voiceGender?: VoiceGender,
   ): Promise<RapTaskAttachResult> {
     try {
       const prompt = ensureStructureTag(lyrics);
       const title = `Rap Battle${theme ? ` - ${theme.slice(0, 60)}` : ''}`;
+      const { tags, negativeTags } = buildVoiceTags(voiceGender);
 
       const { taskId, creditsCharged } = await this.provider.createTask({
         lyrics: prompt,
-        tags: RAP_TAGS,
-        negativeTags: RAP_NEGATIVE_TAGS,
+        tags,
+        negativeTags,
         title,
       });
 

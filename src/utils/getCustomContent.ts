@@ -2,7 +2,7 @@ import { AgentName, ChatContext } from 'src/shared/global.service';
 
 export const dynamicTemperature: Record<ChatContext, number> = {
   chat: 0.7,
-  'hangman-chooser': 0.5,
+  'hangman-chooser': 0.7,
   'hangman-guesser': 0.7,
   chess: 0.7,
   jokenpo: 0.7,
@@ -12,10 +12,10 @@ export const dynamicTemperature: Record<ChatContext, number> = {
 
 export const dynamicMaxTokens: Record<ChatContext, number> = {
   chat: 2048,
-  'hangman-chooser': 160,
-  'hangman-guesser': 120,
-  chess: 30,
-  jokenpo: 40,
+  'hangman-chooser': 1000,
+  'hangman-guesser': 1000,
+  chess: 300,
+  jokenpo: 80,
   rpg: 2048,
   'rap-battle': 2048,
 };

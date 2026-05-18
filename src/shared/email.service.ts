@@ -59,12 +59,8 @@ export class EmailService {
         `,
       });
     } catch (error) {
-      this.logger.error(
-        'Erro ao enviar email de verificação',
-        error as Error,
-      );
+      this.logger.error('Erro ao enviar email de verificação', error as Error);
       throw error;
     }
   }
 }
-

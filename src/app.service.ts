@@ -305,6 +305,10 @@ export class AppService implements OnModuleInit {
         agent,
       );
       const theme = typeof payload.theme === 'string' ? payload.theme : '';
+      const voiceGender =
+        payload.voiceGender === 'male' || payload.voiceGender === 'female'
+          ? payload.voiceGender
+          : undefined;
       try {
         const musicResult =
           await this.musicGenerationService.createRapVerseTask(
@@ -312,6 +316,7 @@ export class AppService implements OnModuleInit {
             result.response,
             theme,
             userId,
+            voiceGender,
           );
         return { [agent]: { ...result, ...musicResult } };
       } catch (error) {

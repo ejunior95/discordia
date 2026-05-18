@@ -77,10 +77,7 @@ export class UsersService {
     try {
       result = await this.userRepository.save(user);
     } catch (err) {
-      if (
-        err instanceof MongoServerError &&
-        (err as MongoServerError).code === 11000
-      ) {
+      if (err instanceof MongoServerError && err.code === 11000) {
         throw new BadRequestException('Este email já está em uso.');
       }
       throw err;
@@ -295,6 +292,6 @@ export class UsersService {
       verificationCodeExpiresAt: undefined,
       verificationAttempts: 0,
       verificationLastSentAt: undefined,
-    } as User;
+    };
   }
 }

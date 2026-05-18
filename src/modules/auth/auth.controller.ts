@@ -11,10 +11,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dtos/login.dto';
-import {
-  ResendVerificationDto,
-  VerifyEmailDto,
-} from './dtos/verify-email.dto';
+import { ResendVerificationDto, VerifyEmailDto } from './dtos/verify-email.dto';
 import { UsersService } from '../users/users.service';
 import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
@@ -116,4 +113,3 @@ export class AuthController {
     };
   }
 }
-

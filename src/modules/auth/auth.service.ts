@@ -70,4 +70,3 @@ export class AuthService {
     await this.usersService.resendVerificationEmail(email);
   }
 }
-
