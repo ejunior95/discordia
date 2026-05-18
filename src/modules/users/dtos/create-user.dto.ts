@@ -59,6 +59,11 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(20)
+  termsVersion?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(280, { message: 'A bio deve ter no máximo 280 caracteres' })
   bio?: string;
 

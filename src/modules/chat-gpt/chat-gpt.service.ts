@@ -22,7 +22,8 @@ export class ChatGptService {
       throw new Error('Configuração da API ChatGPT ausente.');
     }
     this.aiInstance = new OpenAI({ apiKey });
-    this.model = this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-4.1-mini';
+    this.model =
+      this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-4.1-mini';
   }
 
   getModelName(): string {
@@ -51,7 +52,9 @@ export class ChatGptService {
 
       const choice = response.choices[0];
       if (choice?.finish_reason && choice.finish_reason !== 'stop') {
-        this.logger.warn(`Resposta do ChatGPT finalizada com ${choice.finish_reason}`);
+        this.logger.warn(
+          `Resposta do ChatGPT finalizada com ${choice.finish_reason}`,
+        );
       }
 
       const assistantReply = choice?.message?.content ?? '';

@@ -9,10 +9,16 @@ async function bootstrap() {
   app.use(helmet());
   app.use(cookieParser());
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
 
-  const corsOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:5173,https://discordia.app.br')
+  const corsOrigins = (
+    process.env.CORS_ORIGINS ?? 'http://localhost:5173,https://discordia.app.br'
+  )
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);

@@ -23,7 +23,9 @@ export class HistoryService {
       order: { created_at: 'DESC' },
       take: limit,
     });
-    return messages.reverse().map((msg) => ({ role: msg.role, content: msg.content }));
+    return messages
+      .reverse()
+      .map((msg) => ({ role: msg.role, content: msg.content }));
   }
 
   async clear(context: ChatContext) {
@@ -38,7 +40,9 @@ export class HistoryService {
     agentName?: string,
     extras?: { audioUrl?: string; audioMeta?: AudioMeta },
   ): Promise<string> {
-    const agentId = agentName ? await this.getAgentIdByName(agentName) : undefined;
+    const agentId = agentName
+      ? await this.getAgentIdByName(agentName)
+      : undefined;
     const message = this.historyRepository.create({
       user_id: userId,
       role,
@@ -59,7 +63,11 @@ export class HistoryService {
     );
   }
 
-  async setAudioUrl(historyId: string, audioUrl: string, meta?: AudioMeta): Promise<void> {
+  async setAudioUrl(
+    historyId: string,
+    audioUrl: string,
+    meta?: AudioMeta,
+  ): Promise<void> {
     const update: Record<string, unknown> = { audio_url: audioUrl };
     if (meta) update.audio_meta = meta;
     await this.historyRepository.updateOne(

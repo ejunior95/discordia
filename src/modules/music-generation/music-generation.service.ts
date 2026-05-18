@@ -79,7 +79,9 @@ export class MusicGenerationService {
           error: message,
         });
       } catch (persistError) {
-        this.logger.error(`Falha ao registrar erro Sunor: ${(persistError as Error).message}`);
+        this.logger.error(
+          `Falha ao registrar erro Sunor: ${(persistError as Error).message}`,
+        );
       }
       return { musicStatus: 'failed', musicError: message };
     }
@@ -88,7 +90,10 @@ export class MusicGenerationService {
   async pollAndFinalize(taskId: string, userId: string): Promise<PollResult> {
     const existing = await this.historyService.findByTaskId(taskId);
     if (!existing) {
-      return { status: 'failed', error: 'Task não encontrada para este usuário' };
+      return {
+        status: 'failed',
+        error: 'Task não encontrada para este usuário',
+      };
     }
     if (existing.user_id !== userId) {
       return { status: 'failed', error: 'Task não pertence ao usuário' };
@@ -97,14 +102,19 @@ export class MusicGenerationService {
       return { status: 'ready', audio_url: existing.audio_url };
     }
     if (existing.audio_meta?.status === 'failed') {
-      return { status: 'failed', error: existing.audio_meta.error ?? 'Falha anterior' };
+      return {
+        status: 'failed',
+        error: existing.audio_meta.error ?? 'Falha anterior',
+      };
     }
 
     let remote;
     try {
       remote = await this.provider.getTaskStatus(taskId);
     } catch (error) {
-      this.logger.error(`Falha consulta Sunor ${taskId}: ${(error as Error).message}`);
+      this.logger.error(
+        `Falha consulta Sunor ${taskId}: ${(error as Error).message}`,
+      );
       return { status: 'processing' };
     }
 
@@ -139,7 +149,11 @@ export class MusicGenerationService {
       });
       const buffer = Buffer.from(response.data);
       const key = `rap-audio/${userId}/${uuid()}.mp3`;
-      const audioUrl = await this.s3Service.uploadBuffer(buffer, key, 'audio/mpeg');
+      const audioUrl = await this.s3Service.uploadBuffer(
+        buffer,
+        key,
+        'audio/mpeg',
+      );
 
       await this.historyService.setAudioUrl(existing._id.toString(), audioUrl, {
         provider: 'sunor',

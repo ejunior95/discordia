@@ -55,10 +55,9 @@ export class CreditsGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const meta = this.reflector.getAllAndOverride<RequiresCreditsMeta | undefined>(
-      REQUIRES_CREDITS_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const meta = this.reflector.getAllAndOverride<
+      RequiresCreditsMeta | undefined
+    >(REQUIRES_CREDITS_KEY, [context.getHandler(), context.getClass()]);
     if (!meta) return true; // endpoint não cobra créditos
 
     const req = context.switchToHttp().getRequest<AuthedRequest>();

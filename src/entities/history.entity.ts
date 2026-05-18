@@ -1,9 +1,9 @@
-import { 
-  Entity, 
-  ObjectIdColumn, 
-  Column, 
-  ObjectId, 
-  CreateDateColumn 
+import {
+  Entity,
+  ObjectIdColumn,
+  Column,
+  ObjectId,
+  CreateDateColumn,
 } from 'typeorm';
 
 @Entity('histories')
@@ -16,13 +16,20 @@ export class History {
 
   @Column()
   role: 'user' | 'assistant';
-  
+
   @Column()
-  context:  'chat' | 'chess' | 'hangman-chooser' | 'hangman-guesser' | 'jokenpo' | 'rpg' | 'rap-battle';
-  
+  context:
+    | 'chat'
+    | 'chess'
+    | 'hangman-chooser'
+    | 'hangman-guesser'
+    | 'jokenpo'
+    | 'rpg'
+    | 'rap-battle';
+
   @Column()
   content: string;
-  
+
   @Column({ nullable: true })
   agent_id?: string;
 
@@ -40,7 +47,7 @@ export class History {
     durationSec?: number;
     error?: string;
   };
-  
+
   @CreateDateColumn({ type: 'timestamp' })
   created_at?: Date;
 }

@@ -12,12 +12,7 @@ import { CreditsModule } from '../credits/credits.module';
 @Module({
   imports: [TypeOrmModule.forFeature([User]), BillingModule, CreditsModule],
   controllers: [UsersController],
-  providers: [
-    UsersService, 
-    S3Service, 
-    EmailService, 
-    JwtService
-  ],
+  providers: [UsersService, S3Service, EmailService, JwtService],
   exports: [UsersService],
 })
 export class UsersModule {}

@@ -52,8 +52,12 @@ export class StatsController {
   ) {
     try {
       const parsed = limit ? parseInt(limit, 10) : 5;
-      const safeLimit = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 50) : 5;
-      const rounds = await this.statsService.getRecentUserRounds(user.id, safeLimit);
+      const safeLimit =
+        Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 50) : 5;
+      const rounds = await this.statsService.getRecentUserRounds(
+        user.id,
+        safeLimit,
+      );
       return res.status(HttpStatus.OK).json(rounds);
     } catch (error) {
       throw new InternalServerErrorException(
@@ -67,7 +71,9 @@ export class StatsController {
   async recompute(@Res() res: Response) {
     try {
       await this.statsService.recompute();
-      return res.status(HttpStatus.OK).json({ message: 'Stats recomputadas com sucesso' });
+      return res
+        .status(HttpStatus.OK)
+        .json({ message: 'Stats recomputadas com sucesso' });
     } catch (error) {
       throw new InternalServerErrorException(
         `Erro ao recomputar stats - ${(error as Error).message}`,

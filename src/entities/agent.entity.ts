@@ -1,34 +1,33 @@
 import {
-    Entity,
-    ObjectIdColumn,
-    Column,
-    CreateDateColumn,
-    UpdateDateColumn,
-    DeleteDateColumn,
-  } from 'typeorm';
-  import { ObjectId } from 'mongodb';
-  
-  @Entity('agents')
-  export class IA_Agent {
-    @ObjectIdColumn()
-    _id: ObjectId;
-  
-    @Column({ unique: true })
-    name: string;
+  Entity,
+  ObjectIdColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+} from 'typeorm';
+import { ObjectId } from 'mongodb';
 
-    @Column()
-    label: string;
+@Entity('agents')
+export class IA_Agent {
+  @ObjectIdColumn()
+  _id: ObjectId;
 
-    @Column()
-    model: string;
-  
-    @CreateDateColumn({ type: 'timestamp' })
-    created_at?: Date;
-  
-    @UpdateDateColumn({ type: 'timestamp' })
-    updated_at?: Date;
-  
-    @DeleteDateColumn({ type: 'timestamp', nullable: true })
-    deleted_at?: Date;
-  }
-  
+  @Column({ unique: true })
+  name: string;
+
+  @Column()
+  label: string;
+
+  @Column()
+  model: string;
+
+  @CreateDateColumn({ type: 'timestamp' })
+  created_at?: Date;
+
+  @UpdateDateColumn({ type: 'timestamp' })
+  updated_at?: Date;
+
+  @DeleteDateColumn({ type: 'timestamp', nullable: true })
+  deleted_at?: Date;
+}

@@ -12,9 +12,9 @@ export const multerOptions = {
     callback: (error: Error | null, acceptFile: boolean) => void,
   ) => {
     const allowedMimes = [
-      'image/jpeg', 
-      'image/jpg', 
-      'image/png', 
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
       'image/webp',
       'image/gif',
     ];

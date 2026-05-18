@@ -72,23 +72,27 @@ export class CreditsService implements OnApplicationBootstrap {
    */
   async onApplicationBootstrap(): Promise<void> {
     try {
-      const queryRunner = this.txRepo.manager.connection
-        .createQueryRunner() as unknown as {
-        databaseConnection: {
-          db: () => {
-            collection: (name: string) => {
-              indexes: () => Promise<
-                Array<{ name: string; key: Record<string, unknown>; unique?: boolean }>
-              >;
-              dropIndex: (name: string) => Promise<unknown>;
-              updateMany: (
-                filter: Record<string, unknown>,
-                update: Record<string, unknown>,
-              ) => Promise<{ modifiedCount: number }>;
+      const queryRunner =
+        this.txRepo.manager.connection.createQueryRunner() as unknown as {
+          databaseConnection: {
+            db: () => {
+              collection: (name: string) => {
+                indexes: () => Promise<
+                  Array<{
+                    name: string;
+                    key: Record<string, unknown>;
+                    unique?: boolean;
+                  }>
+                >;
+                dropIndex: (name: string) => Promise<unknown>;
+                updateMany: (
+                  filter: Record<string, unknown>,
+                  update: Record<string, unknown>,
+                ) => Promise<{ modifiedCount: number }>;
+              };
             };
           };
         };
-      };
       const coll = queryRunner.databaseConnection
         .db()
         .collection('credit_transactions');
@@ -121,7 +125,9 @@ export class CreditsService implements OnApplicationBootstrap {
 
   /** Cria/retorna wallet do usuário sincronizada com o plano vigente. */
   async ensureWallet(userId: string): Promise<CreditWallet> {
-    const existing = await this.walletRepo.findOne({ where: { user_id: userId } });
+    const existing = await this.walletRepo.findOne({
+      where: { user_id: userId },
+    });
     const { plan } = await this.billingService.getActiveSubscription(userId);
 
     if (!existing) {
@@ -219,14 +225,17 @@ export class CreditsService implements OnApplicationBootstrap {
         const u = await this.usersRepo.findOne({
           where: { _id: new ObjectId(userId) },
         });
-        effectiveRole = (u?.role as UserRole) ?? 'user';
+        effectiveRole = u?.role ?? 'user';
       } catch {
         effectiveRole = 'user';
       }
     }
 
     // Roles isentos: registra auditoria e devolve sucesso sem decrementar.
-    if (effectiveRole && ROLES_EXEMPT_FROM_CHARGE.includes(effectiveRole as never)) {
+    if (
+      effectiveRole &&
+      ROLES_EXEMPT_FROM_CHARGE.includes(effectiveRole as never)
+    ) {
       const tx = await this.recordTransaction({
         user_id: userId,
         type: 'role_exempt',

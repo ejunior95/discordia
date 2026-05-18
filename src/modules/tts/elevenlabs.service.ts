@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 
@@ -20,11 +24,16 @@ export class ElevenLabsService {
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('ELEVENLABS_API_KEY');
-    const voiceId = this.configService.get<string>('ELEVENLABS_VOICE_ID_NARRATOR_PTBR');
-    const model = this.configService.get<string>('ELEVENLABS_MODEL') ?? 'eleven_multilingual_v2';
+    const voiceId = this.configService.get<string>(
+      'ELEVENLABS_VOICE_ID_NARRATOR_PTBR',
+    );
+    const model =
+      this.configService.get<string>('ELEVENLABS_MODEL') ??
+      'eleven_multilingual_v2';
 
     if (!apiKey) throw new Error('ELEVENLABS_API_KEY ausente no ambiente');
-    if (!voiceId) throw new Error('ELEVENLABS_VOICE_ID_NARRATOR_PTBR ausente no ambiente');
+    if (!voiceId)
+      throw new Error('ELEVENLABS_VOICE_ID_NARRATOR_PTBR ausente no ambiente');
 
     this.client = new ElevenLabsClient({ apiKey });
     this.defaultVoiceId = voiceId;
@@ -39,7 +48,9 @@ export class ElevenLabsService {
     if (!sanitized) throw new Error('Texto vazio para TTS');
 
     const truncated =
-      sanitized.length > MAX_CHARS ? `${sanitized.slice(0, MAX_CHARS - 3)}...` : sanitized;
+      sanitized.length > MAX_CHARS
+        ? `${sanitized.slice(0, MAX_CHARS - 3)}...`
+        : sanitized;
 
     const voiceId = opts?.voiceId ?? this.defaultVoiceId;
 

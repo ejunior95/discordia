@@ -6,7 +6,12 @@ export interface MusicClip {
   durationSec?: number;
 }
 
-export type MusicTaskStatus = 'pending' | 'running' | 'success' | 'failure' | 'timeout';
+export type MusicTaskStatus =
+  | 'pending'
+  | 'running'
+  | 'success'
+  | 'failure'
+  | 'timeout';
 
 export interface MusicTaskStatusResult {
   status: MusicTaskStatus;

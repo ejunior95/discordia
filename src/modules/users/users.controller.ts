@@ -40,9 +40,13 @@ export class UsersController {
   ): Promise<UserResponseDto> {
     try {
       const user = await this.usersService.create(body, file);
-      return plainToInstance(UserResponseDto, user, { excludeExtraneousValues: true });
+      return plainToInstance(UserResponseDto, user, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao criar usuário - ${error}`);
+      throw new InternalServerErrorException(
+        `Erro ao criar usuário - ${error}`,
+      );
     }
   }
 
@@ -51,11 +55,15 @@ export class UsersController {
   async findAll(): Promise<UserResponseDto[]> {
     try {
       const users = await this.usersService.findAll();
-      return users.map(user =>
-        plainToInstance(UserResponseDto, user, { excludeExtraneousValues: true }),
+      return users.map((user) =>
+        plainToInstance(UserResponseDto, user, {
+          excludeExtraneousValues: true,
+        }),
       );
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao buscar usuários - ${error}`);
+      throw new InternalServerErrorException(
+        `Erro ao buscar usuários - ${error}`,
+      );
     }
   }
 
@@ -67,9 +75,13 @@ export class UsersController {
       if (!user) {
         throw new HttpException('Usuário não encontrado', 404);
       }
-      return plainToInstance(UserResponseDto, user, { excludeExtraneousValues: true });
+      return plainToInstance(UserResponseDto, user, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao buscar usuário - ${error}`);
+      throw new InternalServerErrorException(
+        `Erro ao buscar usuário - ${error}`,
+      );
     }
   }
 
@@ -100,10 +112,12 @@ export class UsersController {
       await this.usersService.remove(id);
       return { message: 'Usuário removido com sucesso' };
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao remover usuário - ${error}`);
+      throw new InternalServerErrorException(
+        `Erro ao remover usuário - ${error}`,
+      );
     }
   }
-  
+
   @UseGuards(AuthGuard('jwt'))
   @Patch(':id/avatar')
   @UseInterceptors(FileInterceptor('avatar', multerOptions))
@@ -118,10 +132,14 @@ export class UsersController {
 
       const url = await this.s3Service.uploadFile(file, `avatars/${id}`);
       const user = await this.usersService.update(id, { avatar: url });
-      return plainToInstance(UserResponseDto, user, { excludeExtraneousValues: true });
+      return plainToInstance(UserResponseDto, user, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new InternalServerErrorException(`Erro ao enviar avatar - ${error}`);
+      throw new InternalServerErrorException(
+        `Erro ao enviar avatar - ${error}`,
+      );
     }
   }
 }

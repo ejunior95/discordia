@@ -120,7 +120,10 @@ function requireString(record: Record<string, unknown>, key: string): string {
   return value;
 }
 
-function optionalString(record: Record<string, unknown>, key: string): string | undefined {
+function optionalString(
+  record: Record<string, unknown>,
+  key: string,
+): string | undefined {
   const value = record[key];
   if (value === undefined || value === null) return undefined;
   if (typeof value !== 'string') {
@@ -129,7 +132,10 @@ function optionalString(record: Record<string, unknown>, key: string): string | 
   return value;
 }
 
-function requireStringArray(record: Record<string, unknown>, key: string): string[] {
+function requireStringArray(
+  record: Record<string, unknown>,
+  key: string,
+): string[] {
   const value = record[key];
   if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
     throw new BadRequestException(`Campo "${key}" inválido ou ausente.`);
@@ -181,7 +187,10 @@ function getCategoryLabel(value: string): string {
   return labels[value] ?? value;
 }
 
-export function buildIAWordPrompt(categoryLabel: string, usedWords: string[]): string {
+export function buildIAWordPrompt(
+  categoryLabel: string,
+  usedWords: string[],
+): string {
   const exclusion = usedWords.length
     ? `\nNÃO use nenhuma destas palavras: ${usedWords.join(', ')}.`
     : '';
@@ -239,7 +248,10 @@ export function buildChessMovePrompt(input: {
   ].join('\n');
 }
 
-function decideJokenpoWinner(user: JokenpoChoice, ai: JokenpoChoice): 'user' | 'ai' | 'draw' {
+function decideJokenpoWinner(
+  user: JokenpoChoice,
+  ai: JokenpoChoice,
+): 'user' | 'ai' | 'draw' {
   if (user === ai) return 'draw';
   if (
     (user === 'rock' && ai === 'scissors') ||
@@ -251,13 +263,19 @@ function decideJokenpoWinner(user: JokenpoChoice, ai: JokenpoChoice): 'user' | '
   return 'ai';
 }
 
-export function buildJokenpoPrompt(history: { user: JokenpoChoice; ai: JokenpoChoice }[]): string {
+export function buildJokenpoPrompt(
+  history: { user: JokenpoChoice; ai: JokenpoChoice }[],
+): string {
   const historyLine = history.length
     ? `\nHistórico desta partida (você é a IA):\n${history
         .map((item, index) => {
           const result = decideJokenpoWinner(item.user, item.ai);
           return `  Round ${index + 1}: usuário=${item.user} | você=${item.ai} | ${
-            result === 'user' ? 'usuário venceu' : result === 'ai' ? 'você venceu' : 'empate'
+            result === 'user'
+              ? 'usuário venceu'
+              : result === 'ai'
+                ? 'você venceu'
+                : 'empate'
           }`;
         })
         .join('\n')}`
@@ -291,7 +309,9 @@ export function buildRapPrompt(input: {
     history.push(`Seu verso anterior:\n"""${input.previousOwnVerse}"""`);
   }
   if (input.previousOpponentVerse) {
-    history.push(`Último verso do oponente (responda diretamente a ele):\n"""${input.previousOpponentVerse}"""`);
+    history.push(
+      `Último verso do oponente (responda diretamente a ele):\n"""${input.previousOpponentVerse}"""`,
+    );
   }
 
   return [
@@ -319,12 +339,16 @@ function getActorLabel(actor: ActorRef, characters?: Character[]): string {
 }
 
 function formatHistory(turns: TurnAction[], characters: Character[]): string {
-  if (turns.length === 0) return '(sem histórico ainda — é o início da campanha)';
+  if (turns.length === 0)
+    return '(sem histórico ainda — é o início da campanha)';
   const recent = turns.slice(-MAX_HISTORY_TURNS);
   return recent
     .filter((turn) => turn.status === 'success' && turn.content.trim())
     .map((turn) => {
-      const who = turn.role === 'master' ? 'MESTRE' : getActorLabel(turn.actor, characters);
+      const who =
+        turn.role === 'master'
+          ? 'MESTRE'
+          : getActorLabel(turn.actor, characters);
       return `[${who}]: ${turn.content.trim()}`;
     })
     .join('\n');
@@ -333,7 +357,10 @@ function formatHistory(turns: TurnAction[], characters: Character[]): string {
 function formatRoster(characters: Character[]): string {
   return characters
     .map((character) => {
-      const ownerLabel = character.owner === 'user' ? 'Jogador humano' : IA_LABELS[character.owner];
+      const ownerLabel =
+        character.owner === 'user'
+          ? 'Jogador humano'
+          : IA_LABELS[character.owner];
       return `- ${character.name} (${character.classe}, HP ${character.hp}/${character.maxHp}) — ${ownerLabel}`;
     })
     .join('\n');
@@ -360,10 +387,14 @@ export function buildMasterPrompt(campaign: RpgCampaignPayload): string {
   ].join('\n\n');
 }
 
-export function buildPlayerPrompt(campaign: RpgCampaignPayload, agent: AgentName): string {
+export function buildPlayerPrompt(
+  campaign: RpgCampaignPayload,
+  agent: AgentName,
+): string {
   const scenarioCfg = SCENARIOS[campaign.scenario] ?? SCENARIOS.fantasy;
   const character = campaign.characters.find((item) => item.owner === agent);
-  if (!character) throw new BadRequestException(`Personagem não encontrado para ${agent}`);
+  if (!character)
+    throw new BadRequestException(`Personagem não encontrado para ${agent}`);
 
   const lastMasterTurn = [...campaign.turns]
     .reverse()
@@ -397,8 +428,10 @@ function parseChessPayload(payload: unknown) {
   const record = requireRecord(payload);
   const level = requireString(record, 'level');
   const side = requireString(record, 'side');
-  if (!(level in CHESS_LEVELS)) throw new BadRequestException('Nível de xadrez inválido.');
-  if (side !== 'w' && side !== 'b') throw new BadRequestException('Lado de xadrez inválido.');
+  if (!(level in CHESS_LEVELS))
+    throw new BadRequestException('Nível de xadrez inválido.');
+  if (side !== 'w' && side !== 'b')
+    throw new BadRequestException('Lado de xadrez inválido.');
   return {
     fen: requireString(record, 'fen'),
     pgn: requireString(record, 'pgn'),
@@ -408,15 +441,22 @@ function parseChessPayload(payload: unknown) {
   };
 }
 
-function parseJokenpoPayload(payload: unknown): { user: JokenpoChoice; ai: JokenpoChoice }[] {
+function parseJokenpoPayload(
+  payload: unknown,
+): { user: JokenpoChoice; ai: JokenpoChoice }[] {
   const record = requireRecord(payload);
   const history = record.history;
-  if (!Array.isArray(history)) throw new BadRequestException('Histórico de Jokenpo inválido.');
+  if (!Array.isArray(history))
+    throw new BadRequestException('Histórico de Jokenpo inválido.');
   return history.map((item) => {
-    if (!isRecord(item)) throw new BadRequestException('Round de Jokenpo inválido.');
+    if (!isRecord(item))
+      throw new BadRequestException('Round de Jokenpo inválido.');
     const user = requireString(item, 'user');
     const ai = requireString(item, 'ai');
-    if (!['rock', 'paper', 'scissors'].includes(user) || !['rock', 'paper', 'scissors'].includes(ai)) {
+    if (
+      !['rock', 'paper', 'scissors'].includes(user) ||
+      !['rock', 'paper', 'scissors'].includes(ai)
+    ) {
       throw new BadRequestException('Jogada de Jokenpo inválida.');
     }
     return { user: user as JokenpoChoice, ai: ai as JokenpoChoice };
@@ -425,10 +465,14 @@ function parseJokenpoPayload(payload: unknown): { user: JokenpoChoice; ai: Joken
 
 function parseRapPayload(payload: unknown, fallbackAgent: AgentName) {
   const record = requireRecord(payload);
-  const agent = record.agent === undefined ? fallbackAgent : requireAgent(record.agent, 'agent');
+  const agent =
+    record.agent === undefined
+      ? fallbackAgent
+      : requireAgent(record.agent, 'agent');
   const opponent = requireAgent(record.opponent, 'opponent');
   const roundIndex = requireNumber(record.roundIndex, 'roundIndex');
-  if (![1, 2, 3].includes(roundIndex)) throw new BadRequestException('Round de rap inválido.');
+  if (![1, 2, 3].includes(roundIndex))
+    throw new BadRequestException('Round de rap inválido.');
   return {
     agent,
     opponent,
@@ -442,7 +486,8 @@ function parseRapPayload(payload: unknown, fallbackAgent: AgentName) {
 function parseRpgCampaign(payload: unknown): RpgCampaignPayload {
   const record = requireRecord(payload);
   const campaign = record.campaign;
-  if (!isRecord(campaign)) throw new BadRequestException('Campanha de RPG inválida.');
+  if (!isRecord(campaign))
+    throw new BadRequestException('Campanha de RPG inválida.');
   const scenario = requireString(campaign, 'scenario');
   if (!['fantasy', 'sci-fi', 'horror', 'custom'].includes(scenario)) {
     throw new BadRequestException('Cenário de RPG inválido.');
@@ -483,14 +528,21 @@ export function buildGameActionPrompt(
       return buildRapPrompt(parseRapPayload(payload, agent));
     case 'rpg': {
       const campaign = parseRpgCampaign(payload);
-      return campaign.master === agent ? buildMasterPrompt(campaign) : buildPlayerPrompt(campaign, agent);
+      return campaign.master === agent
+        ? buildMasterPrompt(campaign)
+        : buildPlayerPrompt(campaign, agent);
     }
     default:
-      throw new BadRequestException(`Contexto de jogo "${context}" não suportado.`);
+      throw new BadRequestException(
+        `Contexto de jogo "${context}" não suportado.`,
+      );
   }
 }
 
-export function summarizeGameAction(context: GameActionContext, payload: unknown): string {
+export function summarizeGameAction(
+  context: GameActionContext,
+  payload: unknown,
+): string {
   if (!isRecord(payload)) return `[${context}] ação de jogo`;
   switch (context) {
     case 'hangman-chooser':

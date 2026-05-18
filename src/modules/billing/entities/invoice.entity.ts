@@ -1,9 +1,4 @@
-import {
-  Entity,
-  ObjectIdColumn,
-  Column,
-  CreateDateColumn,
-} from 'typeorm';
+import { Entity, ObjectIdColumn, Column, CreateDateColumn } from 'typeorm';
 import { ObjectId } from 'mongodb';
 
 export type InvoiceStatus = 'paid' | 'pending' | 'failed';

@@ -1,9 +1,17 @@
-import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MongoRepository } from 'typeorm';
 import { ObjectId } from 'mongodb';
 import { Plan, PlanSlug } from './entities/plan.entity';
-import { Subscription, SubscriptionStatus } from './entities/subscription.entity';
+import {
+  Subscription,
+  SubscriptionStatus,
+} from './entities/subscription.entity';
 import { Invoice } from './entities/invoice.entity';
 import { PaymentMethod } from './entities/payment-method.entity';
 import { DEFAULT_PLANS, isPlanUpToDate } from './seeders/plans.seed';
@@ -47,14 +55,20 @@ export class BillingService implements OnModuleInit {
       } else {
         (legacyPro as Plan & { slug: PlanSlug }).slug = 'basic';
         await this.plansRepo.save(legacyPro);
-        this.logger.log(`Plan migrated: 'pro' → 'basic' (_id=${legacyPro._id}).`);
+        this.logger.log(
+          `Plan migrated: 'pro' → 'basic' (_id=${legacyPro._id}).`,
+        );
       }
     }
 
     for (const seed of DEFAULT_PLANS) {
-      const existing = await this.plansRepo.findOne({ where: { slug: seed.slug } });
+      const existing = await this.plansRepo.findOne({
+        where: { slug: seed.slug },
+      });
       if (!existing) {
-        await this.plansRepo.save(this.plansRepo.create({ ...seed, active: true }));
+        await this.plansRepo.save(
+          this.plansRepo.create({ ...seed, active: true }),
+        );
         this.logger.log(`Plan seeded: ${seed.slug}`);
         continue;
       }
@@ -119,7 +133,9 @@ export class BillingService implements OnModuleInit {
   }
 
   async listInvoices(userId: string): Promise<Invoice[]> {
-    const invoices = await this.invoicesRepo.find({ where: { user_id: userId } });
+    const invoices = await this.invoicesRepo.find({
+      where: { user_id: userId },
+    });
     return [...invoices].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );

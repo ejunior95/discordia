@@ -10,7 +10,7 @@ import { UserResponseDto } from '../users/dtos/response-user.dto';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly config: ConfigService,
-    private readonly usersService: UsersService
+    private readonly usersService: UsersService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -26,7 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new UnauthorizedException('Usuário não encontrado');
     }
-  
+
     return {
       id: user._id.toString(),
       name: user.name,

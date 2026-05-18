@@ -89,6 +89,7 @@ export function isPlanUpToDate(plan: Plan, seed: PlanSeed): boolean {
     plan.pricing.monthly === seed.pricing.monthly &&
     plan.pricing.yearly === seed.pricing.yearly &&
     JSON.stringify(plan.features) === JSON.stringify(seed.features) &&
-    JSON.stringify(plan.capabilities ?? []) === JSON.stringify(seed.capabilities)
+    JSON.stringify(plan.capabilities ?? []) ===
+      JSON.stringify(seed.capabilities)
   );
 }

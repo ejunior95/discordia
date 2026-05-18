@@ -1,5 +1,17 @@
-import { IsArray, IsIn, IsNotEmpty, IsObject, IsString, ArrayMinSize } from 'class-validator';
-import { ALLOWED_AGENTS, ALLOWED_CONTEXTS, AgentName, ChatContext } from '../shared/global.service';
+import {
+  IsArray,
+  IsIn,
+  IsNotEmpty,
+  IsObject,
+  IsString,
+  ArrayMinSize,
+} from 'class-validator';
+import {
+  ALLOWED_AGENTS,
+  ALLOWED_CONTEXTS,
+  AgentName,
+  ChatContext,
+} from '../shared/global.service';
 import type { GameActionContext } from '../utils/gamePromptBuilders';
 
 export class AskAllDto {
@@ -9,7 +21,7 @@ export class AskAllDto {
 }
 
 export class AskOneDto extends AskAllDto {
-  @IsIn(ALLOWED_AGENTS as unknown as string[], {
+  @IsIn(ALLOWED_AGENTS, {
     message: 'Agente de IA não enviado ou inválido!',
   })
   agent: AgentName;
@@ -22,12 +34,14 @@ export class HangmanDto {
 }
 
 export class StartSessionDto {
-  @IsIn(ALLOWED_CONTEXTS as unknown as string[], { message: 'Contexto inválido!' })
+  @IsIn(ALLOWED_CONTEXTS, {
+    message: 'Contexto inválido!',
+  })
   context: ChatContext;
 
   @IsArray()
   @ArrayMinSize(1)
-  @IsIn(ALLOWED_AGENTS as unknown as string[], {
+  @IsIn(ALLOWED_AGENTS, {
     each: true,
     message: 'Agente de IA não enviado ou inválido!',
   })
@@ -35,12 +49,12 @@ export class StartSessionDto {
 }
 
 export class GameActionDto {
-  @IsIn(ALLOWED_AGENTS as unknown as string[], {
+  @IsIn(ALLOWED_AGENTS, {
     message: 'Agente de IA não enviado ou inválido!',
   })
   agent: AgentName;
 
-  @IsIn(ALLOWED_CONTEXTS.filter((context) => context !== 'chat') as unknown as string[], {
+  @IsIn(ALLOWED_CONTEXTS.filter((context) => context !== 'chat'), {
     message: 'Contexto de jogo inválido!',
   })
   context: GameActionContext;
@@ -50,7 +64,7 @@ export class GameActionDto {
 }
 
 export class VoteRoundDto {
-  @IsIn(ALLOWED_AGENTS as unknown as string[], {
+  @IsIn(ALLOWED_AGENTS, {
     message: 'Agente de IA não enviado ou inválido!',
   })
   agent: AgentName;

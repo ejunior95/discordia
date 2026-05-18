@@ -8,7 +8,9 @@ import { Invoice } from './entities/invoice.entity';
 import { PaymentMethod } from './entities/payment-method.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Plan, Subscription, Invoice, PaymentMethod])],
+  imports: [
+    TypeOrmModule.forFeature([Plan, Subscription, Invoice, PaymentMethod]),
+  ],
   controllers: [BillingController],
   providers: [BillingService],
   exports: [BillingService],

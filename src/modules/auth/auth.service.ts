@@ -17,11 +17,12 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Usuário não encontrado');
 
     const isPasswordValid = await compare(password, user.password);
-    if (!isPasswordValid) throw new UnauthorizedException('Credenciais inválidas');
+    if (!isPasswordValid)
+      throw new UnauthorizedException('Credenciais inválidas');
 
     // if (!user.isVerified) {
     //   throw new UnauthorizedException('Email ainda não verificado.');
-    // }    
+    // }
 
     return user;
   }

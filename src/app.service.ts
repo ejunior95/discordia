@@ -1,4 +1,12 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ChatGptService } from './modules/chat-gpt/chat-gpt.service';
 import { DeepseekService } from './modules/deepseek/deepseek.service';
 import { GeminiService } from './modules/gemini/gemini.service';
@@ -70,15 +78,29 @@ export class AppService implements OnModuleInit {
 
   private async seedDefaultAgents() {
     const defaults: { name: AgentName; label: string; model: string }[] = [
-      { name: 'chat-gpt', label: 'ChatGPT', model: this.chatGptService.getModelName() },
-      { name: 'gemini', label: 'Gemini', model: this.geminiService.getModelName() },
-      { name: 'deepseek', label: 'DeepSeek', model: this.deepseekService.getModelName() },
+      {
+        name: 'chat-gpt',
+        label: 'ChatGPT',
+        model: this.chatGptService.getModelName(),
+      },
+      {
+        name: 'gemini',
+        label: 'Gemini',
+        model: this.geminiService.getModelName(),
+      },
+      {
+        name: 'deepseek',
+        label: 'DeepSeek',
+        model: this.deepseekService.getModelName(),
+      },
       { name: 'grok', label: 'Grok', model: this.grokService.getModelName() },
     ];
 
     for (const def of defaults) {
       try {
-        const existing = await this.agentRepository.findOne({ where: { name: def.name } });
+        const existing = await this.agentRepository.findOne({
+          where: { name: def.name },
+        });
         if (!existing) {
           await this.agentRepository.save(this.agentRepository.create(def));
           this.logger.log(`Agent seed criado: ${def.name} (${def.model})`);
@@ -89,10 +111,14 @@ export class AppService implements OnModuleInit {
           existing.model = def.model;
           existing.label = existing.label || def.label;
           await this.agentRepository.save(existing);
-          this.logger.log(`Agent atualizado: ${def.name} -> model=${def.model}`);
+          this.logger.log(
+            `Agent atualizado: ${def.name} -> model=${def.model}`,
+          );
         }
       } catch (err) {
-        this.logger.error(`Falha no seed do agente ${def.name}: ${(err as Error).message}`);
+        this.logger.error(
+          `Falha no seed do agente ${def.name}: ${(err as Error).message}`,
+        );
       }
     }
   }
@@ -102,7 +128,9 @@ export class AppService implements OnModuleInit {
 
     const agents: AgentName[] = ['gemini', 'deepseek', 'chat-gpt', 'grok'];
     const settled = await Promise.allSettled(
-      agents.map((name) => this.providers[name].execute('chat', question, history)),
+      agents.map((name) =>
+        this.providers[name].execute('chat', question, history),
+      ),
     );
 
     const responses: Record<string, { response: string; error?: string }> = {};
@@ -111,8 +139,13 @@ export class AppService implements OnModuleInit {
       if (result.status === 'fulfilled') {
         responses[name] = { response: result.value.response };
       } else {
-        this.logger.error(`Erro do agente ${name}: ${result.reason?.message ?? result.reason}`);
-        responses[name] = { response: '', error: 'Falha ao consultar este agente' };
+        this.logger.error(
+          `Erro do agente ${name}: ${result.reason?.message ?? result.reason}`,
+        );
+        responses[name] = {
+          response: '',
+          error: 'Falha ao consultar este agente',
+        };
       }
     });
 
@@ -121,7 +154,13 @@ export class AppService implements OnModuleInit {
       agents
         .filter((name) => responses[name].response)
         .map((name) =>
-          this.historyService.add('chat', userId, 'assistant', responses[name].response, name),
+          this.historyService.add(
+            'chat',
+            userId,
+            'assistant',
+            responses[name].response,
+            name,
+          ),
         ),
     );
 
@@ -138,11 +177,15 @@ export class AppService implements OnModuleInit {
       voted_at: null,
     });
     const savedRound = await this.roundRepository.save(roundDoc);
-    const agentsWithResponse = agents.filter((name) => responses[name].response);
+    const agentsWithResponse = agents.filter(
+      (name) => responses[name].response,
+    );
     try {
       await this.statsService.incrementOnNewRound(agentsWithResponse);
     } catch (err) {
-      this.logger.error(`Falha ao atualizar stats no novo round: ${(err as Error).message}`);
+      this.logger.error(
+        `Falha ao atualizar stats no novo round: ${(err as Error).message}`,
+      );
     }
 
     return { roundId: savedRound._id.toString(), responses };
@@ -158,7 +201,13 @@ export class AppService implements OnModuleInit {
     const result = await provider.execute('chat', question, history);
 
     await this.historyService.add('chat', userId, 'user', question);
-    await this.historyService.add('chat', userId, 'assistant', result.response, agent);
+    await this.historyService.add(
+      'chat',
+      userId,
+      'assistant',
+      result.response,
+      agent,
+    );
 
     return { [agent]: result };
   }
@@ -177,11 +226,18 @@ export class AppService implements OnModuleInit {
     const prompt = buildGameActionPrompt(context, agent, payload);
     const result = await provider.execute(context, prompt, []);
 
-    await this.historyService.add(context, userId, 'user', summarizeGameAction(context, payload));
+    await this.historyService.add(
+      context,
+      userId,
+      'user',
+      summarizeGameAction(context, payload),
+    );
 
     // RPG: gerar TTS sincronamente quando o turno é do mestre. Falha aborta o turno.
     const rpgCampaign =
-      context === 'rpg' && typeof payload.campaign === 'object' && payload.campaign !== null
+      context === 'rpg' &&
+      typeof payload.campaign === 'object' &&
+      payload.campaign !== null
         ? (payload.campaign as Record<string, unknown>)
         : null;
     const isRpgMasterTurn = rpgCampaign?.master === agent;
@@ -196,17 +252,28 @@ export class AppService implements OnModuleInit {
       try {
         const tts = await this.elevenLabsService.synthesize(result.response);
         const key = `rpg-audio/${userId}/${uuid()}.mp3`;
-        const audioUrl = await this.s3Service.uploadBuffer(tts.buffer, key, tts.mimeType);
+        const audioUrl = await this.s3Service.uploadBuffer(
+          tts.buffer,
+          key,
+          tts.mimeType,
+        );
 
-        await this.historyService.add(context, userId, 'assistant', result.response, agent, {
-          audioUrl,
-          audioMeta: {
-            provider: 'elevenlabs',
-            status: 'ready',
-            voiceId: tts.voiceId,
-            model: tts.model,
+        await this.historyService.add(
+          context,
+          userId,
+          'assistant',
+          result.response,
+          agent,
+          {
+            audioUrl,
+            audioMeta: {
+              provider: 'elevenlabs',
+              status: 'ready',
+              voiceId: tts.voiceId,
+              model: tts.model,
+            },
           },
-        });
+        );
 
         return { [agent]: { ...result, audio_url: audioUrl } };
       } catch (error) {
@@ -239,12 +306,13 @@ export class AppService implements OnModuleInit {
       );
       const theme = typeof payload.theme === 'string' ? payload.theme : '';
       try {
-        const musicResult = await this.musicGenerationService.createRapVerseTask(
-          historyId,
-          result.response,
-          theme,
-          userId,
-        );
+        const musicResult =
+          await this.musicGenerationService.createRapVerseTask(
+            historyId,
+            result.response,
+            theme,
+            userId,
+          );
         return { [agent]: { ...result, ...musicResult } };
       } catch (error) {
         // Submissão falhou ANTES de gerar a música → estorna.
@@ -257,15 +325,27 @@ export class AppService implements OnModuleInit {
       }
     }
 
-    await this.historyService.add(context, userId, 'assistant', result.response, agent);
+    await this.historyService.add(
+      context,
+      userId,
+      'assistant',
+      result.response,
+      agent,
+    );
 
     return { [agent]: result };
   }
 
-  async startSession(context: ChatContext, agents: AgentName[], userId: string) {
+  async startSession(
+    context: ChatContext,
+    agents: AgentName[],
+    userId: string,
+  ) {
     const agentIds: string[] = [];
     for (const agent of agents) {
-      const agentId = agent ? await this.historyService.getAgentIdByName(agent) : '';
+      const agentId = agent
+        ? await this.historyService.getAgentIdByName(agent)
+        : '';
       agentIds.push(agentId);
     }
 
@@ -311,7 +391,13 @@ export class AppService implements OnModuleInit {
     const result = await provider.execute(context, question, history);
 
     await this.historyService.add(context, userId, 'user', question);
-    await this.historyService.add(context, userId, 'assistant', result.response, agent);
+    await this.historyService.add(
+      context,
+      userId,
+      'assistant',
+      result.response,
+      agent,
+    );
 
     return { [agent]: result };
   }
@@ -341,7 +427,9 @@ export class AppService implements OnModuleInit {
   }
 
   async updateIaAgent(id: string, data: UpdateAgentDto) {
-    const agent = await this.agentRepository.findOneBy({ _id: new ObjectId(id) });
+    const agent = await this.agentRepository.findOneBy({
+      _id: new ObjectId(id),
+    });
     if (!agent) {
       throw new NotFoundException('Agente de IA não encontrado');
     }
@@ -366,7 +454,9 @@ export class AppService implements OnModuleInit {
     if (round.winner_agent) {
       throw new ConflictException('Voto já registrado para este round');
     }
-    const hasResponse = round.responses.find((r) => r.agent === agent && r.content);
+    const hasResponse = round.responses.find(
+      (r) => r.agent === agent && r.content,
+    );
     if (!hasResponse) {
       throw new BadRequestException('Agente não respondeu neste round');
     }
@@ -378,7 +468,8 @@ export class AppService implements OnModuleInit {
       { $set: { winner_agent: agent, voted_at: votedAt } },
       { returnDocument: 'after' },
     );
-    const updated = (result as unknown as { value: Round | null })?.value ?? result;
+    const updated =
+      (result as unknown as { value: Round | null })?.value ?? result;
     if (!updated || (updated as Round).winner_agent !== agent) {
       throw new ConflictException('Voto já registrado para este round');
     }
@@ -386,7 +477,9 @@ export class AppService implements OnModuleInit {
     try {
       await this.statsService.incrementOnVote(agent, votedAt);
     } catch (err) {
-      this.logger.error(`Falha ao atualizar stats no voto: ${(err as Error).message}`);
+      this.logger.error(
+        `Falha ao atualizar stats no voto: ${(err as Error).message}`,
+      );
     }
 
     return { roundId, winner: agent, votedAt };

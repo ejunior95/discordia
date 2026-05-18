@@ -23,13 +23,18 @@ export class CreditsRefundInterceptor implements NestInterceptor {
   constructor(private readonly creditsService: CreditsService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const req = context.switchToHttp().getRequest<Request & { creditTx?: any }>();
+    const req = context
+      .switchToHttp()
+      .getRequest<Request & { creditTx?: any }>();
     return next.handle().pipe(
       catchError((err) => {
         const tx = req.creditTx;
         if (tx?.charged && tx?.transactionId) {
           this.creditsService
-            .refund(tx.transactionId, `handler_error:${err?.message ?? 'unknown'}`)
+            .refund(
+              tx.transactionId,
+              `handler_error:${err?.message ?? 'unknown'}`,
+            )
             .catch((refundErr) =>
               this.logger.error(
                 `Falha ao estornar tx ${tx.transactionId}: ${

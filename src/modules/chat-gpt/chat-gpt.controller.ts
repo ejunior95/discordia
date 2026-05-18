@@ -1,4 +1,12 @@
-import { Body, Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ChatGptService } from './chat-gpt.service';
 import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
@@ -23,10 +31,20 @@ export class ChatGptController {
     try {
       const userId = req.user.id;
       const history = await this.historyService.getRecent(userId, 10, 'chat');
-      const result = await this.chatGptService.execute('chat', body.question, history);
+      const result = await this.chatGptService.execute(
+        'chat',
+        body.question,
+        history,
+      );
 
       await this.historyService.add('chat', userId, 'user', body.question);
-      await this.historyService.add('chat', userId, 'assistant', result.response, 'chat-gpt');
+      await this.historyService.add(
+        'chat',
+        userId,
+        'assistant',
+        result.response,
+        'chat-gpt',
+      );
 
       return res.status(HttpStatus.OK).json(result);
     } catch (error) {

@@ -18,7 +18,8 @@ export class GrokService {
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('GROK_API_KEY');
     const configuredBaseURL =
-      this.configService.get<string>('GROK_API_BASE_URL') ?? 'https://api.x.ai/v1';
+      this.configService.get<string>('GROK_API_BASE_URL') ??
+      'https://api.x.ai/v1';
     const baseURL = configuredBaseURL.replace(/\/$/, '').endsWith('/v1')
       ? configuredBaseURL.replace(/\/$/, '')
       : `${configuredBaseURL.replace(/\/$/, '')}/v1`;
@@ -58,7 +59,9 @@ export class GrokService {
 
       const choice = response.choices[0];
       if (choice?.finish_reason && choice.finish_reason !== 'stop') {
-        this.logger.warn(`Resposta do Grok finalizada com ${choice.finish_reason}`);
+        this.logger.warn(
+          `Resposta do Grok finalizada com ${choice.finish_reason}`,
+        );
       }
 
       const assistantReply = choice?.message?.content ?? '';

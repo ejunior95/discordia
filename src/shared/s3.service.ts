@@ -11,7 +11,9 @@ export class S3Service {
 
   constructor(private readonly configService: ConfigService) {
     const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
-    const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY');
+    const secretAccessKey = this.configService.get<string>(
+      'AWS_SECRET_ACCESS_KEY',
+    );
     const region = this.configService.get<string>('AWS_REGION');
     const bucket = this.configService.get<string>('AWS_BUCKET_NAME');
 
@@ -27,7 +29,10 @@ export class S3Service {
     });
   }
 
-  async uploadFile(file: Express.Multer.File, folder = 'avatars'): Promise<string> {
+  async uploadFile(
+    file: Express.Multer.File,
+    folder = 'avatars',
+  ): Promise<string> {
     const fileExtension = file.originalname.split('.').pop();
     const key = `${folder}/${uuid()}.${fileExtension}`;
 
@@ -44,7 +49,11 @@ export class S3Service {
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
   }
 
-  async uploadBuffer(buffer: Buffer, key: string, contentType: string): Promise<string> {
+  async uploadBuffer(
+    buffer: Buffer,
+    key: string,
+    contentType: string,
+  ): Promise<string> {
     await this.s3.send(
       new PutObjectCommand({
         Bucket: this.bucket,

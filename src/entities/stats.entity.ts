@@ -1,9 +1,4 @@
-import {
-  Entity,
-  ObjectIdColumn,
-  Column,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Entity, ObjectIdColumn, Column, UpdateDateColumn } from 'typeorm';
 import { ObjectId } from 'mongodb';
 import type { AgentName } from '../shared/global.service';
 

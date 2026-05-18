@@ -30,7 +30,9 @@ function emptyWeeklyByAgent(): Record<AgentName, number> {
 
 /** Segunda-feira UTC 00:00 da semana de `d`. */
 function weekStartOf(d: Date): Date {
-  const out = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const out = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+  );
   const dow = out.getUTCDay(); // 0=domingo
   const diff = dow === 0 ? -6 : 1 - dow;
   out.setUTCDate(out.getUTCDate() + diff);
@@ -101,7 +103,8 @@ export class StatsService {
 
     // Mantém apenas as últimas WEEKLY_WINDOW semanas
     stats.weekly.sort(
-      (a, b) => new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime(),
+      (a, b) =>
+        new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime(),
     );
     if (stats.weekly.length > WEEKLY_WINDOW) {
       stats.weekly = stats.weekly.slice(-WEEKLY_WINDOW);
@@ -132,10 +135,15 @@ export class StatsService {
     for (const r of recentWinners) {
       if (r.winner_agent) weeklyCount[r.winner_agent] += 1;
     }
-    let iaOfWeek: { agent: AgentName; weeklyWins: number; streak: number } | null = null;
-    const ranked = ALLOWED_AGENTS
-      .map((a) => ({ agent: a, weeklyWins: weeklyCount[a] }))
-      .sort((a, b) => b.weeklyWins - a.weeklyWins);
+    let iaOfWeek: {
+      agent: AgentName;
+      weeklyWins: number;
+      streak: number;
+    } | null = null;
+    const ranked = ALLOWED_AGENTS.map((a) => ({
+      agent: a,
+      weeklyWins: weeklyCount[a],
+    })).sort((a, b) => b.weeklyWins - a.weeklyWins);
     if (ranked[0]?.weeklyWins > 0) {
       iaOfWeek = {
         agent: ranked[0].agent,
@@ -146,16 +154,21 @@ export class StatsService {
 
     // Garante 8 semanas, preenchendo gaps
     const weeklySorted = [...stats.weekly].sort(
-      (a, b) => new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime(),
+      (a, b) =>
+        new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime(),
     );
     const today = new Date();
     const filled: WeeklyBucket[] = [];
     for (let i = WEEKLY_WINDOW - 1; i >= 0; i--) {
-      const target = weekStartOf(new Date(today.getTime() - i * 7 * 24 * 60 * 60 * 1000));
+      const target = weekStartOf(
+        new Date(today.getTime() - i * 7 * 24 * 60 * 60 * 1000),
+      );
       const found = weeklySorted.find(
         (b) => new Date(b.weekStart).getTime() === target.getTime(),
       );
-      filled.push(found ?? { weekStart: target, byAgent: emptyWeeklyByAgent() });
+      filled.push(
+        found ?? { weekStart: target, byAgent: emptyWeeklyByAgent() },
+      );
     }
 
     // Últimos 5 rounds com vencedor
@@ -197,7 +210,9 @@ export class StatsService {
       if (r.winner_agent) votesByAgent[r.winner_agent] += 1;
     }
 
-    const uniqueAgentsVoted = ALLOWED_AGENTS.filter((a) => votesByAgent[a] > 0).length;
+    const uniqueAgentsVoted = ALLOWED_AGENTS.filter(
+      (a) => votesByAgent[a] > 0,
+    ).length;
 
     let topAgent: AgentName | null = null;
     let topAgentVotes = 0;
@@ -233,7 +248,8 @@ export class StatsService {
       where: { user_id: userId },
     });
     const sorted = [...rounds].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
     return sorted.slice(0, limit).map((r) => ({
       id: r._id.toString(),
@@ -256,7 +272,8 @@ export class StatsService {
 
     // Ordena por data para streak/lastWinAt corretos
     const sorted = [...allRounds].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     );
     let lastWinner: AgentName | null = null;
 
@@ -292,7 +309,8 @@ export class StatsService {
     }
 
     fresh.weekly.sort(
-      (a, b) => new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime(),
+      (a, b) =>
+        new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime(),
     );
     if (fresh.weekly.length > WEEKLY_WINDOW) {
       fresh.weekly = fresh.weekly.slice(-WEEKLY_WINDOW);

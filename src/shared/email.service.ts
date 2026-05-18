@@ -11,7 +11,7 @@ export class EmailService {
 
   async sendWelcomeEmail(to: string, name: string) {
     try {
-      const formattedName = name.split(' ')[0]
+      const formattedName = name.split(' ')[0];
       await this.resend.emails.send({
         from: 'Equipe DiscordIA <no-reply@discordia.app.br>',
         to,
@@ -34,7 +34,7 @@ export class EmailService {
   async sendVerificationEmail(to: string, name: string, token: string) {
     const formattedName = name.split(' ')[0];
     const verifyUrl = `https://discordia.app.br/auth/verify?token=${token}`;
-  
+
     try {
       await this.resend.emails.send({
         from: 'Equipe DiscordIA <no-reply@discordia.app.br>',
@@ -53,6 +53,5 @@ export class EmailService {
     } catch (error) {
       console.error('Erro ao enviar email de verificação:', error);
     }
-  }  
-  
+  }
 }

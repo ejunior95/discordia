@@ -35,7 +35,10 @@ export class CreditsController {
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
   ) {
-    const parsed = Math.min(Math.max(parseInt(limit ?? '20', 10) || 20, 1), 100);
+    const parsed = Math.min(
+      Math.max(parseInt(limit ?? '20', 10) || 20, 1),
+      100,
+    );
     return this.creditsService.listTransactions(req.user!.id, parsed, cursor);
   }
 

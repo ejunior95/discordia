@@ -20,7 +20,14 @@ import { IA_Agent } from './entities/agent.entity';
 import { CreateAgentDto, UpdateAgentDto } from './dtos/create-agent.dto';
 import { UserResponseDto } from './modules/users/dtos/response-user.dto';
 import { ChatContext } from './shared/global.service';
-import { AskAllDto, AskOneDto, GameActionDto, HangmanDto, StartSessionDto, VoteRoundDto } from './dtos/app.dtos';
+import {
+  AskAllDto,
+  AskOneDto,
+  GameActionDto,
+  HangmanDto,
+  StartSessionDto,
+  VoteRoundDto,
+} from './dtos/app.dtos';
 import { RequiresCredits } from './modules/credits/requires-credits.decorator';
 import { CreditsGuard } from './modules/credits/credits.guard';
 import { CreditsRefundInterceptor } from './modules/credits/credits-refund.interceptor';
@@ -73,7 +80,11 @@ export class AppController {
     @Res() res: Response,
   ) {
     try {
-      const result = await this.appService.askToOne(body.question, body.agent, req.user.id);
+      const result = await this.appService.askToOne(
+        body.question,
+        body.agent,
+        req.user.id,
+      );
       return res.status(HttpStatus.OK).json(result);
     } catch (error) {
       return res
@@ -101,7 +112,11 @@ export class AppController {
       return res.status(HttpStatus.OK).json(result);
     } catch (error) {
       return res
-        .status(error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR)
+        .status(
+          error instanceof HttpException
+            ? error.getStatus()
+            : HttpStatus.INTERNAL_SERVER_ERROR,
+        )
         .json({ message: (error as Error).message });
     }
   }
@@ -119,11 +134,15 @@ export class AppController {
     try {
       const userId = req.user.id;
       if (!idSession) {
-        return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Sessão inválida ou não informada!' });
+        return res
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ message: 'Sessão inválida ou não informada!' });
       }
       const session = await this.appService.findSessionById(idSession);
       if (!session) {
-        return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Sessão já encerrada!' });
+        return res
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ message: 'Sessão já encerrada!' });
       }
       const agent = await this.appService.findOnIaAgent(session.agent_ids[0]);
       const result = await this.appService.hangmanGame(
@@ -146,7 +165,9 @@ export class AppController {
     try {
       return await this.appService.createAgent(body);
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao criar agente de IA - ${error}`);
+      throw new InternalServerErrorException(
+        `Erro ao criar agente de IA - ${error}`,
+      );
     }
   }
 
@@ -158,7 +179,11 @@ export class AppController {
     @Res() res: Response,
   ) {
     try {
-      const result = await this.appService.startSession(body.context, body.agents, req.user.id);
+      const result = await this.appService.startSession(
+        body.context,
+        body.agents,
+        req.user.id,
+      );
       return res.status(HttpStatus.OK).json(result);
     } catch (error) {
       return res
@@ -174,7 +199,9 @@ export class AppController {
       await this.appService.finishSession(idSession);
       return { message: 'Sessão encerrada com sucesso' };
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao encerrar sessão - ${error}`);
+      throw new InternalServerErrorException(
+        `Erro ao encerrar sessão - ${error}`,
+      );
     }
   }
 
@@ -183,7 +210,9 @@ export class AppController {
     try {
       return await this.appService.findAllIaAgents();
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao buscar agentes de IA - ${error}`);
+      throw new InternalServerErrorException(
+        `Erro ao buscar agentes de IA - ${error}`,
+      );
     }
   }
 
@@ -195,7 +224,9 @@ export class AppController {
       if (!agent) throw new HttpException('Agente de IA não encontrado', 404);
       return agent;
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao buscar agente de IA - ${error}`);
+      throw new InternalServerErrorException(
+        `Erro ao buscar agente de IA - ${error}`,
+      );
     }
   }
 
@@ -205,7 +236,9 @@ export class AppController {
     try {
       return await this.appService.clearAllHistory(context);
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao limpar histórico ${context} - ${error}`);
+      throw new InternalServerErrorException(
+        `Erro ao limpar histórico ${context} - ${error}`,
+      );
     }
   }
 
@@ -218,7 +251,9 @@ export class AppController {
     try {
       return await this.appService.updateIaAgent(id, body);
     } catch (error) {
-      throw new InternalServerErrorException(`Erro ao atualizar agente de IA - ${error}`);
+      throw new InternalServerErrorException(
+        `Erro ao atualizar agente de IA - ${error}`,
+      );
     }
   }
 
@@ -231,7 +266,11 @@ export class AppController {
     @Res() res: Response,
   ) {
     try {
-      const result = await this.appService.voteOnRound(id, body.agent, req.user.id);
+      const result = await this.appService.voteOnRound(
+        id,
+        body.agent,
+        req.user.id,
+      );
       return res.status(HttpStatus.OK).json(result);
     } catch (error) {
       if (error instanceof HttpException) {

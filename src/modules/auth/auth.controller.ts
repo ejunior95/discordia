@@ -1,4 +1,14 @@
-import { Controller, Post, Body, BadRequestException, Get, Query, UseGuards, Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  BadRequestException,
+  Get,
+  Query,
+  UseGuards,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dtos/login.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -22,18 +32,21 @@ export class AuthController {
   ) {}
 
   @Post('login')
-  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-  try {
-    const result = await this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    try {
+      const result = await this.authService.login(loginDto);
 
-    res.cookie('access_token', result.access_token, {
-      httpOnly: true,
-      sameSite: 'none',
-      secure: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
-    });
+      res.cookie('access_token', result.access_token, {
+        httpOnly: true,
+        sameSite: 'none',
+        secure: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
+      });
 
-    return result.user;
+      return result.user;
     } catch (error) {
       throw new BadRequestException(`Erro ao realizar login - ${error}`);
     }
@@ -49,12 +62,16 @@ export class AuthController {
     return res.send({ message: 'Logout realizado com sucesso' });
   }
 
-
   @Get('verify')
   async verifyEmail(@Query('token') token: string) {
     try {
-      const secretEmail = this.configService.get<string>('EMAIL_VERIFICATION_SECRET');
-      if(!secretEmail) throw new BadRequestException('Secret de verificação de email não encontrado');
+      const secretEmail = this.configService.get<string>(
+        'EMAIL_VERIFICATION_SECRET',
+      );
+      if (!secretEmail)
+        throw new BadRequestException(
+          'Secret de verificação de email não encontrado',
+        );
 
       const payload = this.jwtService.verify(token, {
         secret: secretEmail,
@@ -93,5 +110,4 @@ export class AuthController {
       },
     };
   }
-
 }

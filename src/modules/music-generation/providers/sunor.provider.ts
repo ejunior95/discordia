@@ -70,7 +70,8 @@ export class SunorProvider implements IMusicGenerationProvider {
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('SUNOR_API_KEY');
     const baseURL =
-      this.configService.get<string>('SUNOR_API_BASE_URL') ?? 'https://sunor.cc/api/v1';
+      this.configService.get<string>('SUNOR_API_BASE_URL') ??
+      'https://sunor.cc/api/v1';
 
     if (!apiKey) throw new Error('SUNOR_API_KEY ausente no ambiente');
 
@@ -84,7 +85,9 @@ export class SunorProvider implements IMusicGenerationProvider {
     });
   }
 
-  async createTask(params: CreateMusicTaskParams): Promise<CreateMusicTaskResult> {
+  async createTask(
+    params: CreateMusicTaskParams,
+  ): Promise<CreateMusicTaskResult> {
     const body = {
       model: 'suno',
       task_type: 'music',
@@ -97,10 +100,16 @@ export class SunorProvider implements IMusicGenerationProvider {
     };
 
     const { data } = await this.http.post<SunorCreateResponse>('/task', body);
-    const taskId = data?.task_id ?? data?.taskId ?? data?.data?.task_id ?? data?.data?.taskId;
+    const taskId =
+      data?.task_id ??
+      data?.taskId ??
+      data?.data?.task_id ??
+      data?.data?.taskId;
 
     if (!taskId) {
-      this.logger.error(`Sunor createTask sem task_id: ${JSON.stringify(data)}`);
+      this.logger.error(
+        `Sunor createTask sem task_id: ${JSON.stringify(data)}`,
+      );
       throw new Error('Sunor não retornou task_id');
     }
 
@@ -111,7 +120,9 @@ export class SunorProvider implements IMusicGenerationProvider {
   }
 
   async getTaskStatus(taskId: string): Promise<MusicTaskStatusResult> {
-    const { data } = await this.http.get<SunorStatusResponse>(`/task/${taskId}`);
+    const { data } = await this.http.get<SunorStatusResponse>(
+      `/task/${taskId}`,
+    );
 
     const inner = data?.data ?? data;
     const status = mapStatus(inner?.status ?? data?.status);
@@ -131,7 +142,11 @@ export class SunorProvider implements IMusicGenerationProvider {
     if (status === 'failure' || status === 'timeout') {
       return {
         status,
-        error: output?.fail_reason ?? inner?.error ?? data?.error ?? 'Erro desconhecido',
+        error:
+          output?.fail_reason ??
+          inner?.error ??
+          data?.error ??
+          'Erro desconhecido',
       };
     }
 

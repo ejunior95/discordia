@@ -58,7 +58,9 @@ export class BillingController {
     try {
       const invoices = await this.billingService.listInvoices(user.id);
       return invoices.map((i) =>
-        plainToInstance(InvoiceResponseDto, i, { excludeExtraneousValues: true }),
+        plainToInstance(InvoiceResponseDto, i, {
+          excludeExtraneousValues: true,
+        }),
       );
     } catch (error) {
       throw new InternalServerErrorException(
