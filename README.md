@@ -89,8 +89,7 @@ Variáveis obrigatórias e opcionais aceitas pela aplicação:
 | `AWS_SECRET_ACCESS_KEY`     | Chave secreta AWS                                                                         |
 | `AWS_REGION`                | Região do bucket S3                                                                       |
 | `AWS_BUCKET_NAME`           | Bucket usado para avatares                                                                |
-| `RESEND_API_KEY`            | Chave da Resend para envio de e-mails                                                     |
-| `EMAIL_VERIFICATION_SECRET` | Segredo usado nos tokens de verificação de e-mail                                         |
+| `RESEND_API_KEY`            | Chave da Resend para envio de e-mails (verificação OTP e boas-vindas)                    |
 | `JWT_SECRET`                | Segredo usado para assinar JWTs                                                           |
 | `MUSIC_PROVIDER`            | Provider de música; atualmente `sunor`                                                     |
 | `SUNOR_API_KEY`             | Chave da API Sunor                                                                         |

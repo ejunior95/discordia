@@ -38,6 +38,22 @@ export class User {
   @Column({ default: false })
   isVerified: boolean;
 
+  @Exclude()
+  @Column({ nullable: true })
+  verificationCodeHash?: string;
+
+  @Exclude()
+  @Column({ type: 'timestamp', nullable: true })
+  verificationCodeExpiresAt?: Date;
+
+  @Exclude()
+  @Column({ default: 0 })
+  verificationAttempts: number;
+
+  @Exclude()
+  @Column({ type: 'timestamp', nullable: true })
+  verificationLastSentAt?: Date;
+
   @Column({ default: 'user' })
   role: UserRole;
 

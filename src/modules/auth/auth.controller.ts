@@ -4,57 +4,57 @@ import {
   Body,
   BadRequestException,
   Get,
-  Query,
+  HttpCode,
   UseGuards,
   Req,
   Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dtos/login.dto';
-import { JwtService } from '@nestjs/jwt';
+import {
+  ResendVerificationDto,
+  VerifyEmailDto,
+} from './dtos/verify-email.dto';
 import { UsersService } from '../users/users.service';
-import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { Request, Response } from 'express';
 import { BillingService } from '../billing/billing.service';
 import { CreditsService } from '../credits/credits.service';
+
+const ACCESS_TOKEN_COOKIE = 'access_token';
+const ACCESS_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
-    private configService: ConfigService,
     private readonly billingService: BillingService,
     private readonly creditsService: CreditsService,
   ) {}
+
+  private setAccessTokenCookie(res: Response, token: string) {
+    res.cookie(ACCESS_TOKEN_COOKIE, token, {
+      httpOnly: true,
+      sameSite: 'none',
+      secure: true,
+      maxAge: ACCESS_TOKEN_MAX_AGE_MS,
+    });
+  }
 
   @Post('login')
   async login(
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    try {
-      const result = await this.authService.login(loginDto);
-
-      res.cookie('access_token', result.access_token, {
-        httpOnly: true,
-        sameSite: 'none',
-        secure: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
-      });
-
-      return result.user;
-    } catch (error) {
-      throw new BadRequestException(`Erro ao realizar login - ${error}`);
-    }
+    const result = await this.authService.login(loginDto);
+    this.setAccessTokenCookie(res, result.access_token);
+    return result.user;
   }
 
   @Post('logout')
   logout(@Res() res: Response) {
-    res.clearCookie('access_token', {
+    res.clearCookie(ACCESS_TOKEN_COOKIE, {
       httpOnly: true,
       sameSite: 'none',
       secure: true,
@@ -62,26 +62,31 @@ export class AuthController {
     return res.send({ message: 'Logout realizado com sucesso' });
   }
 
-  @Get('verify')
-  async verifyEmail(@Query('token') token: string) {
+  @Post('verify-email')
+  @HttpCode(200)
+  async verifyEmail(
+    @Body() body: VerifyEmailDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.verifyEmail(body.email, body.code);
+    this.setAccessTokenCookie(res, result.access_token);
+    return result.user;
+  }
+
+  @Post('resend-verification')
+  @HttpCode(200)
+  async resendVerification(@Body() body: ResendVerificationDto) {
     try {
-      const secretEmail = this.configService.get<string>(
-        'EMAIL_VERIFICATION_SECRET',
-      );
-      if (!secretEmail)
-        throw new BadRequestException(
-          'Secret de verificação de email não encontrado',
-        );
-
-      const payload = this.jwtService.verify(token, {
-        secret: secretEmail,
-      });
-
-      await this.usersService.verifyUserEmail(payload.email);
-      return { message: 'Email verificado com sucesso!' };
+      await this.authService.resendVerification(body.email);
     } catch (error) {
-      throw new BadRequestException('Token inválido ou expirado');
+      if (error instanceof BadRequestException) throw error;
+      // Para qualquer outro erro retornamos a resposta genérica abaixo,
+      // evitando vazar se o email existe ou não.
     }
+    return {
+      message:
+        'Se o email estiver cadastrado e ainda não verificado, um novo código foi enviado.',
+    };
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -111,3 +116,4 @@ export class AuthController {
     };
   }
 }
+

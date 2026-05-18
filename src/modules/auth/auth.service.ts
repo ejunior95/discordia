@@ -1,8 +1,14 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dtos/login.dto';
 import { compare } from 'bcryptjs';
+
+export const EMAIL_NOT_VERIFIED_CODE = 'EMAIL_NOT_VERIFIED';
 
 @Injectable()
 export class AuthService {
@@ -20,19 +26,25 @@ export class AuthService {
     if (!isPasswordValid)
       throw new UnauthorizedException('Credenciais inválidas');
 
-    // if (!user.isVerified) {
-    //   throw new UnauthorizedException('Email ainda não verificado.');
-    // }
+    if (!user.isVerified) {
+      throw new ForbiddenException({
+        code: EMAIL_NOT_VERIFIED_CODE,
+        message: 'Email ainda não verificado.',
+        email: user.email,
+      });
+    }
 
     return user;
   }
 
-  async login(loginDto: LoginDto) {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
-
+  private buildSession(user: {
+    _id: { toString(): string };
+    name: string;
+    email: string;
+    avatar?: string;
+  }) {
     const payload = { sub: user._id.toString(), email: user.email };
     const accessToken = this.jwtService.sign(payload);
-
     return {
       access_token: accessToken,
       user: {
@@ -43,4 +55,19 @@ export class AuthService {
       },
     };
   }
+
+  async login(loginDto: LoginDto) {
+    const user = await this.validateUser(loginDto.email, loginDto.password);
+    return this.buildSession(user);
+  }
+
+  async verifyEmail(email: string, code: string) {
+    const user = await this.usersService.verifyEmailCode(email, code);
+    return this.buildSession(user);
+  }
+
+  async resendVerification(email: string) {
+    await this.usersService.resendVerificationEmail(email);
+  }
 }
+

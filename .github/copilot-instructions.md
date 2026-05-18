@@ -75,7 +75,7 @@ Most new orchestration should live in `src/app.service.ts`; keep provider-specif
 - `AppModule` registers a global `ThrottlerGuard` with short and medium limits.
 - `AppModule` registers `CreditsBalanceInterceptor` globally; keep it in place so the frontend can update credit balance from `X-Credits-Balance`.
 - Passwords use `bcryptjs`; hashing helpers live in `src/utils/hash.ts`.
-- Email verification uses `EMAIL_VERIFICATION_SECRET` and `EmailService`.
+- Email verification uses a 6-digit OTP code (bcrypt-hashed, 10 min TTL, 5 attempts max, 60s resend cooldown) handled by `UsersService` + `EmailService` via Resend; endpoints are `POST /auth/verify-email` and `POST /auth/resend-verification`. Login is blocked for unverified accounts with `403 EMAIL_NOT_VERIFIED`.
 - Avatar upload goes through `S3Service`; controllers should not talk to S3 directly.
 - Roles `admin` and `beta_tester` are exempt from credit charges and have all plan capabilities.
 
@@ -202,7 +202,7 @@ Required and supported vars are documented in `README.md` and `.exemplo.env`. Im
 - AI providers: `OPENAI_API_KEY`, `OPENAI_MODEL`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `DEEPSEEK_API_BASE_URL`, `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL`, `GROK_API_BASE_URL`, `GROK_API_KEY`, `GROK_MODEL`.
 - Database: `USER_DATABASE`, `PASS_DATABASE`, `DATABASE_NAME`, `NODE_ENV`.
 - Auth and app: `JWT_SECRET`, `PORT`, `CORS_ORIGINS`.
-- Upload and email: AWS S3 vars, `RESEND_API_KEY`, `EMAIL_VERIFICATION_SECRET`.
+- Upload and email: AWS S3 vars, `RESEND_API_KEY`.
 - Audio and music: `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID_NARRATOR_PTBR`, `ELEVENLABS_MODEL`, `MUSIC_PROVIDER`, `SUNOR_API_KEY`, `SUNOR_API_BASE_URL`.
 
 Never invent real secret values in code, docs, or logs.
