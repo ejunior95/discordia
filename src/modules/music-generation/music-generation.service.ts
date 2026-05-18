@@ -7,6 +7,11 @@ import {
   IMusicGenerationProvider,
   MUSIC_PROVIDER_TOKEN,
 } from './providers/music-provider.interface';
+import {
+  ALIGNMENT_PROVIDER_TOKEN,
+  IAlignmentProvider,
+  WordTiming,
+} from '../alignment/alignment-provider.interface';
 
 const RAP_TAGS = 'rap battle, hip-hop, beat';
 const RAP_NEGATIVE_TAGS = 'english vocals, instrumental';
@@ -43,12 +48,27 @@ export interface PollResult {
   status: 'ready' | 'processing' | 'failed';
   audio_url?: string;
   error?: string;
+  lyricsTimings?: WordTiming[];
+  karaokeStatus?: 'pending' | 'ready' | 'failed';
 }
 
 function ensureStructureTag(lyrics: string): string {
   const trimmed = lyrics.trim();
   if (/\[(Verse|Chorus|Intro|Outro|Bridge|Hook)/i.test(trimmed)) return trimmed;
   return `[Verse]\n${trimmed}`;
+}
+
+/**
+ * Remove tags estruturais como [Verse], [Chorus], [Intro], etc. e linhas vazias
+ * para enviar à API de forced-alignment apenas as palavras realmente cantadas.
+ */
+function sanitizeLyricsForAlignment(lyrics: string): string {
+  return lyrics
+    .replace(/\[(Verse|Chorus|Intro|Outro|Bridge|Hook)[^\]]*\]/gi, '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+    .join('\n');
 }
 
 @Injectable()
@@ -60,6 +80,8 @@ export class MusicGenerationService {
     private readonly provider: IMusicGenerationProvider,
     private readonly historyService: HistoryService,
     private readonly s3Service: S3Service,
+    @Inject(ALIGNMENT_PROVIDER_TOKEN)
+    private readonly alignmentProvider: IAlignmentProvider,
   ) {}
 
   async createRapVerseTask(
@@ -122,7 +144,12 @@ export class MusicGenerationService {
       return { status: 'failed', error: 'Task não pertence ao usuário' };
     }
     if (existing.audio_url) {
-      return { status: 'ready', audio_url: existing.audio_url };
+      return {
+        status: 'ready',
+        audio_url: existing.audio_url,
+        lyricsTimings: existing.audio_meta?.lyricsTimings,
+        karaokeStatus: existing.audio_meta?.karaokeStatus,
+      };
     }
     if (existing.audio_meta?.status === 'failed') {
       return {
@@ -185,9 +212,48 @@ export class MusicGenerationService {
         clipId: clip.id,
         durationSec: clip.durationSec,
         model: 'suno-v5.5',
+        karaokeStatus: 'pending',
       });
 
-      return { status: 'ready', audio_url: audioUrl };
+      // Forced-alignment (karaokê). Falhar aqui NÃO invalida o áudio.
+      let lyricsTimings: WordTiming[] = [];
+      let karaokeStatus: 'ready' | 'failed' = 'failed';
+      try {
+        const cleanLyrics = sanitizeLyricsForAlignment(existing.content ?? '');
+        if (cleanLyrics.length > 0) {
+          const aligned = await this.alignmentProvider.align(
+            buffer,
+            cleanLyrics,
+            'audio/mpeg',
+          );
+          lyricsTimings = aligned.words;
+          karaokeStatus = lyricsTimings.length > 0 ? 'ready' : 'failed';
+        }
+      } catch (alignErr) {
+        this.logger.warn(
+          `Forced-alignment falhou para taskId=${taskId}: ${(alignErr as Error).message}`,
+        );
+        karaokeStatus = 'failed';
+      }
+
+      try {
+        await this.historyService.setLyricsTimings(
+          existing._id.toString(),
+          lyricsTimings,
+          karaokeStatus,
+        );
+      } catch (persistErr) {
+        this.logger.error(
+          `Falha ao persistir timings: ${(persistErr as Error).message}`,
+        );
+      }
+
+      return {
+        status: 'ready',
+        audio_url: audioUrl,
+        lyricsTimings: karaokeStatus === 'ready' ? lyricsTimings : undefined,
+        karaokeStatus,
+      };
     } catch (error) {
       const message = (error as Error).message;
       this.logger.error(`Falha download/upload áudio Sunor: ${message}`);

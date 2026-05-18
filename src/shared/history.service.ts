@@ -82,6 +82,22 @@ export class HistoryService {
     });
   }
 
+  async setLyricsTimings(
+    historyId: string,
+    timings: Array<{ word: string; start: number; end: number }>,
+    karaokeStatus: 'ready' | 'failed',
+  ): Promise<void> {
+    await this.historyRepository.updateOne(
+      { _id: new ObjectId(historyId) },
+      {
+        $set: {
+          'audio_meta.lyricsTimings': timings,
+          'audio_meta.karaokeStatus': karaokeStatus,
+        },
+      },
+    );
+  }
+
   async getAgentIdByName(name: string): Promise<string> {
     const agent = await this.agentRepository.findOne({ where: { name } });
     if (!agent) throw new NotFoundException(`Agente ${name} não encontrado`);

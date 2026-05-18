@@ -46,6 +46,8 @@ export class History {
     model?: string;
     durationSec?: number;
     error?: string;
+    karaokeStatus?: 'pending' | 'ready' | 'failed';
+    lyricsTimings?: Array<{ word: string; start: number; end: number }>;
   };
 
   @CreateDateColumn({ type: 'timestamp' })
