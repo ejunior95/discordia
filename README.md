@@ -73,7 +73,7 @@ Variáveis obrigatórias e opcionais aceitas pela aplicação:
 | Variável                    | Uso                                                                                       |
 | --------------------------- | ----------------------------------------------------------------------------------------- |
 | `OPENAI_API_KEY`            | Chave da API da OpenAI                                                                    |
-| `OPENAI_MODEL`              | Modelo da OpenAI, opcional; padrão `gpt-4.1-mini`                                         |
+| `OPENAI_MODEL`              | Modelo da OpenAI, opcional; padrão `gpt-5.4-mini`                                         |
 | `GEMINI_API_KEY`            | Chave da API do Gemini                                                                    |
 | `GEMINI_MODEL`              | Modelo do Gemini, opcional; padrão `gemini-2.5-flash`                                     |
 | `DEEPSEEK_API_BASE_URL`     | URL base da API Deepseek                                                                  |

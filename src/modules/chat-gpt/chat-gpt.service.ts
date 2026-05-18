@@ -23,7 +23,7 @@ export class ChatGptService {
     }
     this.aiInstance = new OpenAI({ apiKey });
     this.model =
-      this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-4.1-mini';
+      this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-5.4-mini';
   }
 
   getModelName(): string {
@@ -46,7 +46,7 @@ export class ChatGptService {
       const response = await this.aiInstance.chat.completions.create({
         model: this.model,
         messages,
-        max_tokens: dynamicMaxTokens[context],
+        max_completion_tokens: dynamicMaxTokens[context],
         temperature: dynamicTemperature[context],
       });
 
