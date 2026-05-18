@@ -21,6 +21,15 @@ export class PlanResponseDto {
   features: string[];
 
   @Expose()
+  capabilities: ('chat' | 'games' | 'audio' | 'music')[];
+
+  @Expose()
+  monthlyCredits: number;
+
+  @Expose()
+  unlimitedSoftCap?: number | null;
+
+  @Expose()
   monthlyRoundsLimit?: number | null;
 
   @Expose()

@@ -16,6 +16,8 @@ import { S3Service } from './shared/s3.service';
 import { ElevenLabsService } from './modules/tts/elevenlabs.service';
 import { MusicGenerationService } from './modules/music-generation/music-generation.service';
 import { StatsService } from './modules/stats/stats.service';
+import { CreditsService } from './modules/credits/credits.service';
+import { CREDIT_COSTS } from './modules/credits/credit-costs';
 import { v4 as uuid } from 'uuid';
 import {
   buildGameActionPrompt,
@@ -52,6 +54,7 @@ export class AppService implements OnModuleInit {
     private readonly elevenLabsService: ElevenLabsService,
     private readonly musicGenerationService: MusicGenerationService,
     private readonly statsService: StatsService,
+    private readonly creditsService: CreditsService,
   ) {
     this.providers = {
       'chat-gpt': this.chatGptService,
@@ -184,6 +187,12 @@ export class AppService implements OnModuleInit {
     const isRpgMasterTurn = rpgCampaign?.master === agent;
 
     if (context === 'rpg' && isRpgMasterTurn && result.response?.trim()) {
+      // Cobra TTS antes de chamar ElevenLabs. Falha aborta o turno.
+      const ttsCharge = await this.creditsService.charge(userId, {
+        amount: CREDIT_COSTS.TTS_RESPONSE,
+        action: 'TTS_RESPONSE',
+        reason: 'rpg_master_tts',
+      });
       try {
         const tts = await this.elevenLabsService.synthesize(result.response);
         const key = `rpg-audio/${userId}/${uuid()}.mp3`;
@@ -202,6 +211,12 @@ export class AppService implements OnModuleInit {
         return { [agent]: { ...result, audio_url: audioUrl } };
       } catch (error) {
         this.logger.error(`Falha TTS RPG: ${(error as Error).message}`);
+        // Estorna a cobrança porque o turno foi abortado.
+        if (ttsCharge.transactionId) {
+          await this.creditsService
+            .refund(ttsCharge.transactionId, 'tts_synthesis_failed')
+            .catch(() => undefined);
+        }
         // NÃO persiste history do assistant — turno é abortado.
         throw error;
       }
@@ -209,6 +224,12 @@ export class AppService implements OnModuleInit {
 
     // Rap battle: cria task no Sunor (fire-and-attach). Falha NÃO aborta o verso.
     if (context === 'rap-battle' && result.response?.trim()) {
+      // Cobra MUSIC_GEN ANTES de submeter para o Suno (evita abuso via polling).
+      const musicCharge = await this.creditsService.charge(userId, {
+        amount: CREDIT_COSTS.MUSIC_GEN,
+        action: 'MUSIC_GEN',
+        reason: 'rap_battle_music_submit',
+      });
       const historyId = await this.historyService.add(
         context,
         userId,
@@ -217,13 +238,23 @@ export class AppService implements OnModuleInit {
         agent,
       );
       const theme = typeof payload.theme === 'string' ? payload.theme : '';
-      const musicResult = await this.musicGenerationService.createRapVerseTask(
-        historyId,
-        result.response,
-        theme,
-        userId,
-      );
-      return { [agent]: { ...result, ...musicResult } };
+      try {
+        const musicResult = await this.musicGenerationService.createRapVerseTask(
+          historyId,
+          result.response,
+          theme,
+          userId,
+        );
+        return { [agent]: { ...result, ...musicResult } };
+      } catch (error) {
+        // Submissão falhou ANTES de gerar a música → estorna.
+        if (musicCharge.transactionId) {
+          await this.creditsService
+            .refund(musicCharge.transactionId, 'music_submit_failed')
+            .catch(() => undefined);
+        }
+        throw error;
+      }
     }
 
     await this.historyService.add(context, userId, 'assistant', result.response, agent);

@@ -1,4 +1,5 @@
 import { Expose, Transform } from 'class-transformer';
+import { UserRole } from '../entities/user.entity';
 
 export class UserSocialsResponseDto {
   @Expose()
@@ -30,6 +31,9 @@ export class UserResponseDto {
 
   @Expose()
   socials?: UserSocialsResponseDto;
+
+  @Expose()
+  role: UserRole;
 
   @Expose({ name: 'terms_accepted_at' })
   termsAcceptedAt?: Date;

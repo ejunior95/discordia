@@ -28,6 +28,29 @@ export class BillingService implements OnModuleInit {
   }
 
   private async seedDefaultPlans() {
+    // Migração: rename plano legacy 'pro' → 'basic' (preserva _id e
+    // referências em subscriptions). Roda antes do loop de upsert.
+    const legacyPro = await this.plansRepo.findOne({
+      where: { slug: 'pro' as PlanSlug },
+    });
+    if (legacyPro) {
+      const basicAlready = await this.plansRepo.findOne({
+        where: { slug: 'basic' as PlanSlug },
+      });
+      if (basicAlready) {
+        // Já existe um 'basic' — desativa o legacy para evitar duplicidade.
+        legacyPro.active = false;
+        await this.plansRepo.save(legacyPro);
+        this.logger.warn(
+          `Plan legacy 'pro' desativado: 'basic' já existe (_id=${basicAlready._id}).`,
+        );
+      } else {
+        (legacyPro as Plan & { slug: PlanSlug }).slug = 'basic';
+        await this.plansRepo.save(legacyPro);
+        this.logger.log(`Plan migrated: 'pro' → 'basic' (_id=${legacyPro._id}).`);
+      }
+    }
+
     for (const seed of DEFAULT_PLANS) {
       const existing = await this.plansRepo.findOne({ where: { slug: seed.slug } });
       if (!existing) {

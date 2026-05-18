@@ -21,6 +21,10 @@ import { CreateAgentDto, UpdateAgentDto } from './dtos/create-agent.dto';
 import { UserResponseDto } from './modules/users/dtos/response-user.dto';
 import { ChatContext } from './shared/global.service';
 import { AskAllDto, AskOneDto, GameActionDto, HangmanDto, StartSessionDto, VoteRoundDto } from './dtos/app.dtos';
+import { RequiresCredits } from './modules/credits/requires-credits.decorator';
+import { CreditsGuard } from './modules/credits/credits.guard';
+import { CreditsRefundInterceptor } from './modules/credits/credits-refund.interceptor';
+import { UseInterceptors } from '@nestjs/common';
 
 @Controller()
 export class AppController {
@@ -40,7 +44,9 @@ export class AppController {
     });
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), CreditsGuard)
+  @UseInterceptors(CreditsRefundInterceptor)
+  @RequiresCredits('CHAT_ASK_ALL')
   @Post('/ask-to-all')
   async askToAllAgents(
     @Body() body: AskAllDto,
@@ -57,7 +63,9 @@ export class AppController {
     }
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), CreditsGuard)
+  @UseInterceptors(CreditsRefundInterceptor)
+  @RequiresCredits('CHAT_ASK_ONE')
   @Post('/ask-to-one')
   async askToOnlyOneAgent(
     @Body() body: AskOneDto,
@@ -74,7 +82,9 @@ export class AppController {
     }
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), CreditsGuard)
+  @UseInterceptors(CreditsRefundInterceptor)
+  @RequiresCredits('GAME_ACTION')
   @Post('/ai/game-action')
   async askGameAction(
     @Body() body: GameActionDto,
@@ -96,7 +106,9 @@ export class AppController {
     }
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), CreditsGuard)
+  @UseInterceptors(CreditsRefundInterceptor)
+  @RequiresCredits('GAME_ACTION')
   @Post('/hangman/:idSession')
   async hangmanGame(
     @Param('idSession') idSession: string,

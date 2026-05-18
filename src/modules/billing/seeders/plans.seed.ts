@@ -1,4 +1,4 @@
-import { Plan, PlanSlug } from '../entities/plan.entity';
+import { Plan, PlanCapability, PlanSlug } from '../entities/plan.entity';
 
 export interface PlanSeed {
   slug: PlanSlug;
@@ -6,6 +6,9 @@ export interface PlanSeed {
   description: string;
   pricing: { monthly: number; yearly: number };
   features: string[];
+  capabilities: PlanCapability[];
+  monthlyCredits: number;
+  unlimitedSoftCap?: number | null;
   monthlyRoundsLimit: number | null;
   highlight: boolean;
   cta: string;
@@ -15,49 +18,59 @@ export interface PlanSeed {
 export const DEFAULT_PLANS: PlanSeed[] = [
   {
     slug: 'free',
-    name: 'Free',
-    description: 'Para experimentar comparações de IA no dia a dia.',
+    name: 'Grátis',
+    description: 'Pra experimentar e comparar as 4 IAs no dia a dia.',
     pricing: { monthly: 0, yearly: 0 },
     features: [
-      'Até 50 rodadas por mês',
-      'Acesso aos 4 modelos básicos',
+      '50 créditos por mês',
+      'Chat conflituoso com as 4 IAs',
       'Histórico no navegador',
       'Suporte da comunidade',
     ],
+    capabilities: ['chat'],
+    monthlyCredits: 50,
+    unlimitedSoftCap: null,
     monthlyRoundsLimit: 50,
     highlight: false,
-    cta: 'Continuar grátis',
+    cta: 'Começar grátis',
     order: 0,
   },
   {
-    slug: 'pro',
-    name: 'Pro',
-    description: 'Para quem usa o DiscordIA com frequência.',
-    pricing: { monthly: 29.9, yearly: 299 },
+    slug: 'basic',
+    name: 'Basic',
+    description: 'Pra quem usa o DiscordIA com frequência e curte jogar.',
+    pricing: { monthly: 39.99, yearly: 399.9 },
     features: [
-      '1.000 rodadas por mês',
-      'Modelos avançados habilitados',
-      'Sincronização em nuvem',
-      'Exportar conversas e rodadas',
+      '600 créditos por mês',
+      'Chat conflituoso com as 4 IAs',
+      'Jogos contra IA (xadrez, hangman, jokenpô, RPG)',
+      'Batalha de rima (modo texto)',
       'Suporte por email prioritário',
     ],
-    monthlyRoundsLimit: 1000,
+    capabilities: ['chat', 'games'],
+    monthlyCredits: 600,
+    unlimitedSoftCap: null,
+    monthlyRoundsLimit: 600,
     highlight: true,
-    cta: 'Assinar Pro',
+    cta: 'Assinar Basic',
     order: 1,
   },
   {
     slug: 'premium',
     name: 'Premium',
-    description: 'Para times e usuários intensivos.',
-    pricing: { monthly: 79.9, yearly: 799 },
+    description: 'Acesso total — texto, jogos, voz e geração de música.',
+    pricing: { monthly: 79.99, yearly: 799.9 },
     features: [
-      'Rodadas ilimitadas',
-      'Todos os modelos liberados',
-      'Modo equipe (até 5 membros)',
-      'Chaves de API customizadas',
-      'SLA e suporte dedicado',
+      'Créditos ilimitados (fair use)',
+      'Chat conflituoso com as 4 IAs',
+      'Todos os jogos contra IA',
+      'Batalha de rima com música gerada (Suno)',
+      'Narração de respostas em voz (ElevenLabs)',
+      'Acesso antecipado a novos modos',
     ],
+    capabilities: ['chat', 'games', 'audio', 'music'],
+    monthlyCredits: 2500,
+    unlimitedSoftCap: 2500,
     monthlyRoundsLimit: null,
     highlight: false,
     cta: 'Assinar Premium',
@@ -73,8 +86,11 @@ export function isPlanUpToDate(plan: Plan, seed: PlanSeed): boolean {
     plan.highlight === seed.highlight &&
     plan.order === seed.order &&
     plan.monthlyRoundsLimit === seed.monthlyRoundsLimit &&
+    plan.monthlyCredits === seed.monthlyCredits &&
+    (plan.unlimitedSoftCap ?? null) === (seed.unlimitedSoftCap ?? null) &&
     plan.pricing.monthly === seed.pricing.monthly &&
     plan.pricing.yearly === seed.pricing.yearly &&
-    JSON.stringify(plan.features) === JSON.stringify(seed.features)
+    JSON.stringify(plan.features) === JSON.stringify(seed.features) &&
+    JSON.stringify(plan.capabilities ?? []) === JSON.stringify(seed.capabilities)
   );
 }

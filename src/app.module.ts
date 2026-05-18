@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -19,6 +19,8 @@ import { MusicGenerationModule } from './modules/music-generation/music-generati
 import { StatsModule } from './modules/stats/stats.module';
 import { Round } from './entities/round.entity';
 import { BillingModule } from './modules/billing/billing.module';
+import { CreditsModule } from './modules/credits/credits.module';
+import { CreditsBalanceInterceptor } from './modules/credits/credits-balance.interceptor';
 
 @Module({
   imports: [
@@ -57,11 +59,13 @@ import { BillingModule } from './modules/billing/billing.module';
     TtsModule,
     MusicGenerationModule,
     BillingModule,
+    CreditsModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_INTERCEPTOR, useClass: CreditsBalanceInterceptor },
   ],
 })
 export class AppModule {}

@@ -7,6 +7,8 @@ import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { Request, Response } from 'express';
+import { BillingService } from '../billing/billing.service';
+import { CreditsService } from '../credits/credits.service';
 
 @Controller('auth')
 export class AuthController {
@@ -14,7 +16,9 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private readonly billingService: BillingService,
+    private readonly creditsService: CreditsService,
   ) {}
 
   @Post('login')
@@ -65,9 +69,29 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('me')
-  getMe(@Req() req: Request) {
+  async getMe(@Req() req: Request) {
     const user = req.user as any;
-    return user;
+    const userId = user?.id as string;
+    const [{ plan }, balance] = await Promise.all([
+      this.billingService.getActiveSubscription(userId),
+      this.creditsService.getBalance(userId),
+    ]);
+    return {
+      ...user,
+      plan: {
+        slug: plan.slug,
+        name: plan.name,
+        capabilities: plan.capabilities ?? [],
+        monthlyCredits: plan.monthlyCredits ?? 0,
+        unlimitedSoftCap: plan.unlimitedSoftCap ?? null,
+      },
+      credits: {
+        balance: balance.balance,
+        monthlyAllowance: balance.monthlyAllowance,
+        isUnlimited: balance.isUnlimited,
+        periodEnd: balance.periodEnd,
+      },
+    };
   }
 
 }

@@ -15,6 +15,8 @@ import {
     linkedin?: string;
   }
 
+  export type UserRole = 'user' | 'admin' | 'beta_tester';
+
   @Entity('users')
   export class User {
     @ObjectIdColumn()
@@ -35,6 +37,9 @@ import {
 
     @Column({ default: false })
     isVerified: boolean;
+
+    @Column({ default: 'user' })
+    role: UserRole;
 
     @Column({ nullable: true })
     bio?: string;

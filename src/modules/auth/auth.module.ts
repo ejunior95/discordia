@@ -5,11 +5,15 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy';
+import { BillingModule } from '../billing/billing.module';
+import { CreditsModule } from '../credits/credits.module';
 
 @Module({
   imports: [
     UsersModule,
     ConfigModule,
+    BillingModule,
+    CreditsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

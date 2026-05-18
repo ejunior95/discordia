@@ -12,6 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import { S3Service } from 'src/shared/s3.service';
 import { compare } from 'bcryptjs';
 import { BillingService } from '../billing/billing.service';
+import { CreditsService } from '../credits/credits.service';
 
 @Injectable()
 export class UsersService {
@@ -23,6 +24,7 @@ export class UsersService {
     private readonly configService: ConfigService,
     private readonly s3Service: S3Service,
     private readonly billingService: BillingService,
+    private readonly creditsService: CreditsService,
   ) {}
 
   async create(data: CreateUserDto, file?: Express.Multer.File): Promise<User> {
@@ -43,10 +45,11 @@ export class UsersService {
 
     try {
       await this.billingService.ensureFreeSubscription(result._id.toString());
+      await this.creditsService.ensureWallet(result._id.toString());
     } catch (err) {
       // não bloqueia o cadastro se billing falhar
       // eslint-disable-next-line no-console
-      console.warn('Falha ao criar subscription free:', (err as Error).message);
+      console.warn('Falha ao criar subscription/wallet free:', (err as Error).message);
     }
   
   
