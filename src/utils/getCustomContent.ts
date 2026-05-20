@@ -11,13 +11,13 @@ export const dynamicTemperature: Record<ChatContext, number> = {
 };
 
 export const dynamicMaxTokens: Record<ChatContext, number> = {
-  chat: 2048,
-  'hangman-chooser': 1000,
-  'hangman-guesser': 1000,
+  chat: 5000,
+  'hangman-chooser': 5000,
+  'hangman-guesser': 5000,
   chess: 300,
-  jokenpo: 80,
-  rpg: 2048,
-  'rap-battle': 2048,
+  jokenpo: 100,
+  rpg: 5000,
+  'rap-battle': 5000,
 };
 
 export function getCustomContent(type: ChatContext, currentAi?: AgentName) {
