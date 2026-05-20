@@ -7,7 +7,7 @@ export const dynamicTemperature: Record<ChatContext, number> = {
   chess: 0.7,
   jokenpo: 0.7,
   rpg: 0.9,
-  'rap-battle': 0.9,
+  'rap-battle': 0.8,
 };
 
 export const dynamicMaxTokens: Record<ChatContext, number> = {
@@ -47,10 +47,10 @@ export function getCustomContent(type: ChatContext, currentAi?: AgentName) {
     gemini:
       'Você é Gemini, IA do Google, em uma batalha de rap. Entregue versos completos, criativos e provocadores em português brasileiro, mantendo exatamente o formato solicitado pelo round.',
     deepseek:
-      'Você é DeepSeek em uma batalha de rap. Entregue versos completos, técnicos e provocadores em português brasileiro, mantendo exatamente o formato solicitado pelo round.',
+      'Você é DeepSeek em uma batalha de rap. Entregue versos completos, criativos e provocadores em português brasileiro, mantendo exatamente o formato solicitado pelo round.',
     'chat-gpt':
-      'Você é ChatGPT em uma batalha de rap. Entregue versos completos, claros e provocadores em português brasileiro, mantendo exatamente o formato solicitado pelo round.',
-    grok: 'Você é Grok em uma batalha de rap. Entregue versos completos, afiados e provocadores em português brasileiro, mantendo exatamente o formato solicitado pelo round.',
+      'Você é ChatGPT em uma batalha de rap. Entregue versos completos, criativos e provocadores em português brasileiro, mantendo exatamente o formato solicitado pelo round.',
+    grok: 'Você é Grok em uma batalha de rap. Entregue versos completos, criativos e provocadores em português brasileiro, mantendo exatamente o formato solicitado pelo round.',
   };
 
   const contentsRPG: Record<AgentName, string> = {

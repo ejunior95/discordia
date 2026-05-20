@@ -182,7 +182,8 @@ export class MusicGenerationService {
     }
 
     // success
-    const clip = remote.clips?.[0];
+    const randomSelectClip = remote.clips?.[Math.floor(Math.random() * remote.clips.length)];
+    const clip = randomSelectClip ?? remote.clips?.[0];
     if (!clip?.audioUrl) {
       await this.historyService.attachAudioMeta(existing._id.toString(), {
         ...(existing.audio_meta ?? { provider: 'sunor', taskId }),
