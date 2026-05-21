@@ -1,10 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AgentModel, AgentName, isAgentModel, isAgentName } from '../../shared/global.service';
-import { DeepseekService } from '../deepseek/deepseek.service';
-import { GeminiService } from '../gemini/gemini.service';
-import { ChatGptService } from '../chat-gpt/chat-gpt.service';
-import { GrokService } from '../grok/grok.service';
+import { MinimaxService } from '../minimax/minimax.service';
 import {
   OrchestratorTargetKind,
   OrchestratorVerdict,
@@ -12,56 +8,30 @@ import {
 
 type OrchestratorMetadata = Record<string, unknown>;
 
-interface AiProvider {
-  execute(
-    context: 'chat',
-    question: string,
-    history: { role: 'user' | 'assistant'; content: string }[],
-  ): Promise<{ response: string }>;
-}
-
-const DEFAULT_TIMEOUT_MS = 4000;
+const DEFAULT_TIMEOUT_MS = 12000;
 const MAX_INPUT_LENGTH = 4000;
 
 @Injectable()
 export class OrchestratorService {
   private readonly logger = new Logger(OrchestratorService.name);
-  private readonly agent: AgentName;
   private readonly timeoutMs: number;
-  private readonly providers: Record<AgentName, AiProvider>;
 
   constructor(
     private readonly config: ConfigService,
-    deepseek: DeepseekService,
-    gemini: GeminiService,
-    chatgpt: ChatGptService,
-    grok: GrokService,
+    private readonly minimax: MinimaxService,
   ) {
-    const raw = this.config.get<string>('ORCHESTRATOR_AGENT');
-    if (raw && !isAgentName(raw)) {
-      this.logger.warn(
-        `ORCHESTRATOR_AGENT inválido ("${raw}"); usando "deepseek".`,
-      );
-    }
-    this.agent = isAgentName(raw) ? raw : 'deepseek';
-
     const rawTimeout = Number(this.config.get('ORCHESTRATOR_TIMEOUT_MS'));
     this.timeoutMs =
       Number.isFinite(rawTimeout) && rawTimeout > 0
         ? rawTimeout
         : DEFAULT_TIMEOUT_MS;
 
-    this.providers = {
-      deepseek,
-      gemini,
-      'chat-gpt': chatgpt,
-      grok,
-    };
-
     this.logger.log(
-      `Orquestrador habilitado (agent=${this.agent}, timeout=${this.timeoutMs}ms).`,
+      `Orquestrador habilitado (agent=minimax, timeout=${this.timeoutMs}ms).`,
     );
   }
+
+  // ── Ponto de entrada público ─────────────────────────────────────────────
 
   async validate(
     kind: OrchestratorTargetKind,
@@ -107,71 +77,163 @@ export class OrchestratorService {
     }
   }
 
+  // ── Heurística local ─────────────────────────────────────────────────────
+
   /**
-   * localHeuristic: Aplica regras simples e determinísticas para casos óbvios, evitando chamadas desnecessárias à IA. 
-   * Deve retornar um veredicto se a decisão for clara, ou null para delegar à IA quando o caso for ambíguo ou complexo.
-   * @param kind 
-   * @param text 
-   * @param metadata 
-   * @returns 
+   * Aplica regras determinísticas para casos estruturalmente inválidos,
+   * evitando chamadas desnecessárias à IA. Retorna null quando o input
+   * é ambíguo o suficiente para precisar de julgamento semântico.
    */
   private localHeuristic(
     kind: OrchestratorTargetKind,
     text: string,
     metadata: OrchestratorMetadata,
   ): OrchestratorVerdict | null {
+    // ── Guards universais ──────────────────────────────────────────────────
+
     if (!text) {
       return { severity: 'block', reason: 'Texto vazio.' };
     }
+
     if (text.length > MAX_INPUT_LENGTH) {
       return { severity: 'block', reason: 'Texto excessivamente longo.' };
     }
-    // Inputs curtos demais para julgamento por IA — devolve ok cedo.
-    if (text.length < 2 && kind !== 'hangman-word') {
-      return { severity: 'ok' };
+
+    // Repetição excessiva de um único caractere: "aaaaaaa", "!!!!!!", etc.
+    if (/^(.)\1{9,}$/.test(text)) {
+      return {
+        severity: 'block',
+        reason: 'Texto com repetição excessiva de caracteres.',
+      };
     }
-    const category = this.readMetadataString(metadata, 'category');
-    if (kind === 'hangman-word' && category) {
-      const mismatch = this.detectHangmanCategoryMismatch(category, text);
-      if (mismatch) return mismatch;
+
+    // Nenhuma letra — só números, símbolos ou espaços
+    if (!/[a-zA-ZÀ-ú]/.test(text)) {
+      return { severity: 'block', reason: 'Texto sem conteúdo alfabético.' };
     }
+
+    // Tentativa de prompt injection
+    if (this.hasPromptInjection(text)) {
+      return {
+        severity: 'block',
+        reason: 'Possível tentativa de prompt injection.',
+      };
+    }
+
+    // ── Validações por kind ────────────────────────────────────────────────
+
+    switch (kind) {
+      case 'hangman-word': {
+        if (text.length < 2) {
+          return { severity: 'block', reason: 'Palavra da forca muito curta.' };
+        }
+        // Palavra única: sem espaços
+        if (/\s/.test(text)) {
+          return {
+            severity: 'block',
+            reason: 'Palavra da forca não pode conter espaços.',
+          };
+        }
+        // Apenas letras (acentos permitidos)
+        if (!/^[a-zA-ZÀ-ú]+$/.test(text)) {
+          return {
+            severity: 'block',
+            reason: 'Palavra da forca deve conter apenas letras.',
+          };
+        }
+        const category = this.readMetadataString(metadata, 'category');
+        if (category) {
+          const mismatch = this.detectHangmanCategoryMismatch(category, text);
+          if (mismatch) return mismatch;
+        }
+        break;
+      }
+
+      case 'hangman-category': {
+        // Categorias só podem ter letras, espaços e hífen
+        if (!/^[a-zA-ZÀ-ú\s\-]+$/.test(text)) {
+          return {
+            severity: 'block',
+            reason: 'Categoria da forca com caracteres inválidos.',
+          };
+        }
+        break;
+      }
+
+      case 'rap-battle-theme': {
+        // Tema deve ser curto — texto longo provavelmente é lixo ou injeção
+        if (text.length > 120) {
+          return {
+            severity: 'warn',
+            reason: 'Tema de rap-battle incomumente longo.',
+          };
+        }
+        break;
+      }
+
+      case 'chat':
+      case 'rpg-player-action':
+      case 'rpg-master-narration':
+      case 'rpg-campaign-theme': {
+        if (text.length < 2) {
+          return {
+            severity: 'block',
+            reason: 'Input muito curto para este contexto.',
+          };
+        }
+        break;
+      }
+    }
+
+    // Delega à IA para julgamento semântico
     return null;
   }
+
+  // ── Detecção de prompt injection ─────────────────────────────────────────
+
+  private hasPromptInjection(text: string): boolean {
+    const lower = text.toLowerCase();
+    const patterns = [
+      // Inglês
+      /ignore\s+(all\s+)?(previous|prior|above)\s+instructions?/,
+      /forget\s+(everything|all|your)\s+/,
+      /you\s+are\s+now\s+(a|an)\s+/,
+      /act\s+as\s+(a|an)\s+/,
+      /override\s+(your\s+)?(instructions?|rules?|guidelines?)/,
+      // Marcadores de sistema
+      /system\s*:\s*/,
+      /\[system\]/,
+      /<\s*system\s*>/,
+      // Português
+      /ignore\s+(as\s+)?(instru[çc][oõ]es|regras)/,
+      /finja\s+que\s+voc[eê]\s+[eé]/,
+      /esqueça\s+(tudo|as\s+instru)/,
+      /você\s+agora\s+[eé]\s+(um|uma)\s+/,
+    ];
+    return patterns.some((p) => p.test(lower));
+  }
+
+  // ── Invocação da IA ──────────────────────────────────────────────────────
 
   private async invoke(
     kind: OrchestratorTargetKind,
     text: string,
     metadata: OrchestratorMetadata,
   ): Promise<OrchestratorVerdict> {
-    
-    const provider = this.providers[this.agent];
-    const prompt = this.buildPrompt(kind, text, metadata);
-    const { response } = await provider.execute('chat', prompt, []);
+    const { system, user } = this.buildPrompt(kind, text, metadata);
+    const { response } = await this.minimax.execute(user, [], system);
     return this.parse(response);
   }
 
-  getAgentModel(): string {
-    const raw = this.config.get<string>('ORCHESTRATOR_AGENT');
-    if (raw && isAgentModel(raw)) {
-      return raw;
-    }
-    // Mapeamento legado para compatibilidade com valores antigos de ORCHESTRATOR_AGENT
-    const legacyMap: Record<AgentName, AgentModel> = {
-      deepseek: 'deepseek-v4-flash',
-      'chat-gpt': 'gpt-5.4',
-      gemini: 'gemini-3.1-flash-lite',
-      grok: 'grok-4.3',
-    };
-    return legacyMap[this.agent] || 'deepseek-v4-flash';
-  }
+  // ── Construção do prompt ─────────────────────────────────────────────────
 
   private buildPrompt(
     kind: OrchestratorTargetKind,
     text: string,
     metadata: OrchestratorMetadata,
-  ): string {
+  ): { system: string; user: string } {
     const descriptions: Record<OrchestratorTargetKind, string> = {
-      chat: 'mensagem aberta de chat. Esperado: pergunta ou afirmação coerente em qualquer idioma, sem ser apenas spam, lixo aleatório.',
+      chat: 'mensagem aberta de chat. Esperado: pergunta ou afirmação coerente em qualquer idioma, sem ser apenas spam ou lixo aleatório.',
       'rap-battle-theme':
         'tema para uma batalha de rima entre IAs (palavra ou frase curta, ex.: "futebol", "tecnologia atual", "vida na cidade").',
       'rpg-campaign-theme':
@@ -181,7 +243,7 @@ export class OrchestratorService {
       'rpg-player-action':
         'ação curta do jogador de RPG, descrevendo o que o personagem faz (ex.: "ataco o goblin", "investigo a porta").',
       'hangman-word':
-        'palavra secreta para o jogo da forca: UMA única palavra real, sem números nem caracteres especiais, obrigatoriamente coerente com a categoria/tema escolhido quando ele for informado.',
+        'palavra secreta para o jogo da forca: UMA única palavra real, sem números nem caracteres especiais, obrigatoriamente coerente com a categoria/tema escolhido quando informado.',
       'hangman-category':
         'categoria ou tema livre para o jogo da forca (substantivo curto).',
     };
@@ -191,13 +253,8 @@ export class OrchestratorService {
         ? 'Regra específica da forca: se a palavra NÃO pertence claramente à categoria informada, classifique como "block". Ex.: categoria "frutas" com palavra "ELEFANTE" deve ser "block".'
         : '';
 
-    return [
+    const system = [
       'Você é um classificador de moderação de inputs de usuário em um app de jogos com IAs.',
-      `Tipo esperado: ${descriptions[kind]}`,
-      ...this.formatMetadata(metadata),
-      categoryRule,
-      `Input recebido (entre aspas triplas): """${text}"""`,
-      '',
       'Classifique em UMA destas severidades:',
       '- "ok": faz sentido para o tipo esperado.',
       '- "warn": ambíguo, suspeito ou meio fora de tema, mas ainda processável.',
@@ -208,7 +265,20 @@ export class OrchestratorService {
     ]
       .filter(Boolean)
       .join('\n');
+
+    const user = [
+      `Tipo esperado: ${descriptions[kind]}`,
+      ...this.formatMetadata(metadata),
+      categoryRule,
+      `Input recebido (entre aspas triplas): """${text}"""`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    return { system, user };
   }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
   private formatMetadata(metadata: OrchestratorMetadata): string[] {
     return Object.entries(metadata).flatMap(([key, value]) => {
@@ -226,12 +296,17 @@ export class OrchestratorService {
     return typeof value === 'string' ? value.trim() : '';
   }
 
+  /**
+   * Detecta mismatches óbvios e estruturais entre categoria e palavra.
+   * Casos semânticos ambíguos são intencionalmente deixados para a IA.
+   */
   private detectHangmanCategoryMismatch(
     category: string,
     word: string,
   ): OrchestratorVerdict | null {
     const normalizedCategory = this.normalize(category);
     const normalizedWord = this.normalize(word);
+
     const obviousAnimals = new Set([
       'elefante',
       'cachorro',
@@ -262,6 +337,7 @@ export class OrchestratorService {
         reason: 'A palavra não pertence à categoria escolhida.',
       };
     }
+
     return null;
   }
 
@@ -273,18 +349,22 @@ export class OrchestratorService {
       .trim();
   }
 
+  // ── Parse da resposta da IA ──────────────────────────────────────────────
+
   private parse(raw: string): OrchestratorVerdict {
     const cleaned = raw
       .trim()
       .replace(/^```(?:json)?/i, '')
       .replace(/```$/, '')
       .trim();
+
     try {
       const start = cleaned.indexOf('{');
       const end = cleaned.lastIndexOf('}');
       const slice =
         start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned;
       const obj = JSON.parse(slice) as { severity?: string; reason?: string };
+
       if (
         obj?.severity === 'ok' ||
         obj?.severity === 'warn' ||
@@ -295,6 +375,7 @@ export class OrchestratorService {
     } catch {
       // fallthrough
     }
+
     this.logger.warn(
       `Resposta do orquestrador não parseável: ${raw.slice(0, 200)}`,
     );
