@@ -106,7 +106,7 @@ export class AppService implements OnModuleInit {
           this.logger.log(`Agent seed criado: ${def.name} (${def.model})`);
           continue;
         }
-        // mantém label/model atualizados conforme env
+
         if (existing.model !== def.model || !existing.label) {
           existing.model = def.model;
           existing.label = existing.label || def.label;
@@ -164,7 +164,6 @@ export class AppService implements OnModuleInit {
         ),
     );
 
-    // Persiste o round e atualiza stats
     const roundDoc = this.roundRepository.create({
       user_id: userId,
       question,
@@ -226,14 +225,35 @@ export class AppService implements OnModuleInit {
     const prompt = buildGameActionPrompt(context, agent, payload);
     const result = await provider.execute(context, prompt, []);
 
-    await this.historyService.add(
-      context,
-      userId,
-      'user',
-      summarizeGameAction(context, payload),
-    );
+    try {
+      await this.statsService.incrementOnGameAction(context, agent);
+    } catch (err) {
+      this.logger.error(
+        `Falha ao atualizar stats na ação de jogo (${context}): ${(err as Error).message}`,
+      );
+    }
 
-    // RPG: gerar TTS sincronamente quando o turno é do mestre. Falha aborta o turno.
+    const actionSummary = summarizeGameAction(context, payload);
+
+    await this.historyService.add(context, userId, 'user', actionSummary);
+
+    // Persiste Round para permitir votação em qualquer contexto de game action.
+    // É feito aqui, antes dos paths específicos, para que o roundId esteja disponível
+    // em todos os returns. Em caso de falha (RPG TTS), o Round persiste sem assistant
+    // history — comportamento aceitável pois o turno foi abortado pelo erro.
+    const roundDoc = this.roundRepository.create({
+      user_id: userId,
+      question: actionSummary,
+      context,
+      responses: [{ agent, content: result.response }],
+      winner_agent: null,
+      voted_at: null,
+    });
+    const savedRound = await this.roundRepository.save(roundDoc);
+    const roundId = savedRound._id.toString();
+
+    // ─── RPG: gerar TTS sincronamente quando o turno é do mestre ───────────────
+    // Falha aborta o turno (throw), mas o Round já foi persistido acima.
     const rpgCampaign =
       context === 'rpg' &&
       typeof payload.campaign === 'object' &&
@@ -243,7 +263,6 @@ export class AppService implements OnModuleInit {
     const isRpgMasterTurn = rpgCampaign?.master === agent;
 
     if (context === 'rpg' && isRpgMasterTurn && result.response?.trim()) {
-      // Cobra TTS antes de chamar ElevenLabs. Falha aborta o turno.
       const ttsCharge = await this.creditsService.charge(userId, {
         amount: CREDIT_COSTS.TTS_RESPONSE,
         action: 'TTS_RESPONSE',
@@ -275,10 +294,9 @@ export class AppService implements OnModuleInit {
           },
         );
 
-        return { [agent]: { ...result, audio_url: audioUrl } };
+        return { roundId, [agent]: { ...result, audio_url: audioUrl } };
       } catch (error) {
         this.logger.error(`Falha TTS RPG: ${(error as Error).message}`);
-        // Estorna a cobrança porque o turno foi abortado.
         if (ttsCharge.transactionId) {
           await this.creditsService
             .refund(ttsCharge.transactionId, 'tts_synthesis_failed')
@@ -289,9 +307,9 @@ export class AppService implements OnModuleInit {
       }
     }
 
-    // Rap battle: cria task no Sunor (fire-and-attach). Falha NÃO aborta o verso.
+    // ─── Rap battle: cria task no Suno (fire-and-attach) ───────────────────────
+    // Falha NÃO aborta o verso — o roundId já foi gerado.
     if (context === 'rap-battle' && result.response?.trim()) {
-      // Cobra MUSIC_GEN ANTES de submeter para o Suno (evita abuso via polling).
       const musicCharge = await this.creditsService.charge(userId, {
         amount: CREDIT_COSTS.MUSIC_GEN,
         action: 'MUSIC_GEN',
@@ -318,9 +336,8 @@ export class AppService implements OnModuleInit {
             userId,
             voiceGender,
           );
-        return { [agent]: { ...result, ...musicResult } };
+        return { roundId, [agent]: { ...result, ...musicResult } };
       } catch (error) {
-        // Submissão falhou ANTES de gerar a música → estorna.
         if (musicCharge.transactionId) {
           await this.creditsService
             .refund(musicCharge.transactionId, 'music_submit_failed')
@@ -330,6 +347,7 @@ export class AppService implements OnModuleInit {
       }
     }
 
+    // ─── Caminho genérico ───────────────────────────────────────────────────────
     await this.historyService.add(
       context,
       userId,
@@ -338,7 +356,7 @@ export class AppService implements OnModuleInit {
       agent,
     );
 
-    return { [agent]: result };
+    return { roundId, [agent]: result };
   }
 
   async startSession(
@@ -479,8 +497,11 @@ export class AppService implements OnModuleInit {
       throw new ConflictException('Voto já registrado para este round');
     }
 
+    // Passa o context do round para discriminar stats por tipo
+    const roundContext = round.context;
+
     try {
-      await this.statsService.incrementOnVote(agent, votedAt);
+      await this.statsService.incrementOnVote(agent, votedAt, roundContext);
     } catch (err) {
       this.logger.error(
         `Falha ao atualizar stats no voto: ${(err as Error).message}`,

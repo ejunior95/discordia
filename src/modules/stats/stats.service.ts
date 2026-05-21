@@ -3,10 +3,21 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { MongoRepository } from 'typeorm';
 import { Stats, StatsByAgent, WeeklyBucket } from '../../entities/stats.entity';
 import { Round } from '../../entities/round.entity';
+import { History } from '../../entities/history.entity';
 import { ALLOWED_AGENTS, AgentName } from '../../shared/global.service';
 
 const SCOPE = 'global';
 const WEEKLY_WINDOW = 8;
+
+// Contextos considerados "game" para fins de estatísticas de voto
+const GAME_CONTEXTS = new Set([
+  'rpg',
+  'rap-battle',
+  'chess',
+  'jokenpo',
+  'hangman-chooser',
+  'hangman-guesser',
+]);
 
 function emptyByAgent(): Record<AgentName, StatsByAgent> {
   return ALLOWED_AGENTS.reduce(
@@ -48,6 +59,8 @@ export class StatsService {
     private readonly statsRepo: MongoRepository<Stats>,
     @InjectRepository(Round)
     private readonly roundsRepo: MongoRepository<Round>,
+    @InjectRepository(History)
+    private readonly historyRepo: MongoRepository<History>,
   ) {}
 
   private async ensureStats(): Promise<Stats> {
@@ -56,14 +69,23 @@ export class StatsService {
 
     const fresh = this.statsRepo.create({
       scope: SCOPE,
-      totals: { rounds: 0, questions: 0, votes: 0 },
+      totals: {
+        rounds: 0,
+        questions: 0,
+        votes: 0,
+        chatVotes: 0,
+        gameVotes: 0,
+        rpgBattles: 0,
+        rapBattles: 0,
+        gamesRounds: 0,
+      },
       byAgent: emptyByAgent(),
       weekly: [],
     });
     return this.statsRepo.save(fresh);
   }
 
-  /** Incrementa contadores quando um novo round é criado (sem vencedor ainda). */
+  /** Incrementa contadores quando um novo round de chat é criado (sem vencedor ainda). */
   async incrementOnNewRound(agentsWithResponse: AgentName[]): Promise<void> {
     const stats = await this.ensureStats();
     stats.totals.rounds += 1;
@@ -74,10 +96,57 @@ export class StatsService {
     await this.statsRepo.save(stats);
   }
 
-  /** Incrementa contadores quando um voto é registrado em um round. */
-  async incrementOnVote(winner: AgentName, votedAt: Date): Promise<void> {
+  /** Incrementa contadores globais e por agente quando uma ação de jogo acontece. */
+  async incrementOnGameAction(context: string, agent: AgentName): Promise<void> {
     const stats = await this.ensureStats();
+    stats.totals.rounds += 1;
+
+    if (!stats.totals.gamesRounds) stats.totals.gamesRounds = 0;
+    if (!stats.totals.rpgBattles) stats.totals.rpgBattles = 0;
+    if (!stats.totals.rapBattles) stats.totals.rapBattles = 0;
+
+    stats.totals.gamesRounds += 1;
+
+    if (context === 'rpg') {
+      stats.totals.rpgBattles += 1;
+    } else if (context === 'rap-battle') {
+      stats.totals.rapBattles += 1;
+    }
+
+    if (stats.byAgent[agent]) {
+      stats.byAgent[agent].rounds += 1;
+    }
+
+    await this.statsRepo.save(stats);
+  }
+
+  /**
+   * Incrementa contadores quando um voto é registrado em um round.
+   *
+   * @param winner  - Agente vencedor
+   * @param votedAt - Momento do voto
+   * @param context - Contexto do round ('chat' | 'rpg' | 'rap-battle' | ...)
+   *                  Usado para discriminar chatVotes vs gameVotes nos totais.
+   */
+  async incrementOnVote(
+    winner: AgentName,
+    votedAt: Date,
+    context?: string,
+  ): Promise<void> {
+    const stats = await this.ensureStats();
+
+    // Garante que os campos existam (compatibilidade com documentos antigos)
+    if (!stats.totals.chatVotes) stats.totals.chatVotes = 0;
+    if (!stats.totals.gameVotes) stats.totals.gameVotes = 0;
+
     stats.totals.votes += 1;
+
+    if (context && GAME_CONTEXTS.has(context)) {
+      stats.totals.gameVotes += 1;
+    } else {
+      // Sem context ou context === 'chat' cai aqui
+      stats.totals.chatVotes += 1;
+    }
 
     const agentStats = stats.byAgent[winner];
     agentStats.wins += 1;
@@ -85,12 +154,10 @@ export class StatsService {
     agentStats.streak += 1;
     agentStats.lastWinAt = votedAt;
 
-    // Zera streak dos outros
     for (const a of ALLOWED_AGENTS) {
       if (a !== winner) stats.byAgent[a].streak = 0;
     }
 
-    // Atualiza bucket semanal
     const wStart = weekStartOf(votedAt);
     let bucket = stats.weekly.find(
       (b) => new Date(b.weekStart).getTime() === wStart.getTime(),
@@ -101,7 +168,6 @@ export class StatsService {
     }
     bucket.byAgent[winner] += 1;
 
-    // Mantém apenas as últimas WEEKLY_WINDOW semanas
     stats.weekly.sort(
       (a, b) =>
         new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime(),
@@ -123,12 +189,11 @@ export class StatsService {
 
     const leader = leaderboard[0]?.wins > 0 ? leaderboard[0].agent : null;
 
-    // IA da semana = mais vitórias nos últimos 7 dias (via rounds)
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const seismicDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const recentWinners = await this.roundsRepo.find({
       where: {
         winner_agent: { $ne: null },
-        voted_at: { $gte: sevenDaysAgo },
+        voted_at: { $gte: seismicDaysAgo },
       },
     });
     const weeklyCount = emptyWeeklyByAgent();
@@ -152,7 +217,6 @@ export class StatsService {
       };
     }
 
-    // Garante 8 semanas, preenchendo gaps
     const weeklySorted = [...stats.weekly].sort(
       (a, b) =>
         new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime(),
@@ -171,7 +235,6 @@ export class StatsService {
       );
     }
 
-    // Últimos 5 rounds com vencedor
     const recent = await this.roundsRepo.find({
       where: { winner_agent: { $ne: null } },
       order: { voted_at: 'DESC' } as never,
@@ -197,7 +260,6 @@ export class StatsService {
     };
   }
 
-  /** Estatísticas agregadas por usuário (usadas em Profile/Subscription). */
   async getUserStats(userId: string) {
     const rounds = await this.roundsRepo.find({ where: { user_id: userId } });
 
@@ -242,7 +304,6 @@ export class StatsService {
     };
   }
 
-  /** Últimos N rounds do usuário (ordenados por data). */
   async getRecentUserRounds(userId: string, limit = 5) {
     const rounds = await this.roundsRepo.find({
       where: { user_id: userId },
@@ -260,31 +321,58 @@ export class StatsService {
     }));
   }
 
-  /** Reconstrói o documento `stats` varrendo todos os rounds. */
   async recompute(): Promise<Stats> {
     const allRounds = await this.roundsRepo.find();
+
+    const gameHistories = await this.historyRepo.find({
+      where: {
+        role: 'assistant',
+        context: { $in: ['rpg', 'rap-battle', 'chess', 'jokenpo', 'hangman-chooser', 'hangman-guesser'] },
+      },
+    });
+
     const fresh: Pick<Stats, 'scope' | 'totals' | 'byAgent' | 'weekly'> = {
       scope: SCOPE,
-      totals: { rounds: 0, questions: 0, votes: 0 },
+      totals: {
+        rounds: 0,
+        questions: 0,
+        votes: 0,
+        chatVotes: 0,
+        gameVotes: 0,
+        rpgVotes: 0,
+        rapVotes: 0,
+        rpgBattles: 0,
+        rapBattles: 0,
+        gamesRounds: 0,
+      },
       byAgent: emptyByAgent(),
       weekly: [],
     };
 
-    // Ordena por data para streak/lastWinAt corretos
-    const sorted = [...allRounds].sort(
-      (a, b) =>
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    const sortedRounds = [...allRounds].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     );
+
     let lastWinner: AgentName | null = null;
 
-    for (const r of sorted) {
+    for (const r of sortedRounds) {
       fresh.totals.rounds += 1;
       fresh.totals.questions += 1;
       for (const resp of r.responses) {
-        if (resp.content) fresh.byAgent[resp.agent].rounds += 1;
+        if (resp.content && fresh.byAgent[resp.agent]) {
+          fresh.byAgent[resp.agent].rounds += 1;
+        }
       }
       if (r.winner_agent && r.voted_at) {
         fresh.totals.votes += 1;
+
+        const roundContext = (r as Round & { context?: string }).context;
+        if (roundContext && GAME_CONTEXTS.has(roundContext)) {
+          fresh.totals.gameVotes += 1;
+        } else {
+          fresh.totals.chatVotes += 1;
+        }
+
         const ag = fresh.byAgent[r.winner_agent];
         ag.wins += 1;
         ag.votes += 1;
@@ -308,9 +396,23 @@ export class StatsService {
       }
     }
 
+    for (const history of gameHistories) {
+      fresh.totals.gamesRounds += 1;
+
+      if (history.context === 'rpg') {
+        fresh.totals.rpgBattles += 1;
+      } else if (history.context === 'rap-battle') {
+        fresh.totals.rapBattles += 1;
+      }
+
+      const agentName = history.agent_id as AgentName;
+      if (agentName && fresh.byAgent[agentName]) {
+        fresh.byAgent[agentName].rounds += 1;
+      }
+    }
+
     fresh.weekly.sort(
-      (a, b) =>
-        new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime(),
+      (a, b) => new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime(),
     );
     if (fresh.weekly.length > WEEKLY_WINDOW) {
       fresh.weekly = fresh.weekly.slice(-WEEKLY_WINDOW);

@@ -19,6 +19,9 @@ export class Round {
   @Column()
   question: string;
 
+  @Column({ nullable: true })
+  context?: string;
+
   @Column()
   responses: RoundResponse[];
 

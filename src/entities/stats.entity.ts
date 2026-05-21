@@ -27,7 +27,14 @@ export class Stats {
   totals: {
     rounds: number;
     questions: number;
+    rpgBattles: number;
+    rapBattles: number;
+    gamesRounds: number;
     votes: number;
+    chatVotes: number;
+    gameVotes: number;
+    rapVotes: number;
+    rpgVotes: number;
   };
 
   @Column()
