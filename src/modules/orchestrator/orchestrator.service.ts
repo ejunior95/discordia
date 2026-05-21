@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AgentName, isAgentName } from '../../shared/global.service';
+import { AgentModel, AgentName, isAgentModel, isAgentName } from '../../shared/global.service';
 import { DeepseekService } from '../deepseek/deepseek.service';
 import { GeminiService } from '../gemini/gemini.service';
 import { ChatGptService } from '../chat-gpt/chat-gpt.service';
@@ -107,6 +107,14 @@ export class OrchestratorService {
     }
   }
 
+  /**
+   * localHeuristic: Aplica regras simples e determinísticas para casos óbvios, evitando chamadas desnecessárias à IA. 
+   * Deve retornar um veredicto se a decisão for clara, ou null para delegar à IA quando o caso for ambíguo ou complexo.
+   * @param kind 
+   * @param text 
+   * @param metadata 
+   * @returns 
+   */
   private localHeuristic(
     kind: OrchestratorTargetKind,
     text: string,
@@ -135,10 +143,26 @@ export class OrchestratorService {
     text: string,
     metadata: OrchestratorMetadata,
   ): Promise<OrchestratorVerdict> {
+    
     const provider = this.providers[this.agent];
     const prompt = this.buildPrompt(kind, text, metadata);
     const { response } = await provider.execute('chat', prompt, []);
     return this.parse(response);
+  }
+
+  getAgentModel(): string {
+    const raw = this.config.get<string>('ORCHESTRATOR_AGENT');
+    if (raw && isAgentModel(raw)) {
+      return raw;
+    }
+    // Mapeamento legado para compatibilidade com valores antigos de ORCHESTRATOR_AGENT
+    const legacyMap: Record<AgentName, AgentModel> = {
+      deepseek: 'deepseek-v4-flash',
+      'chat-gpt': 'gpt-5.4',
+      gemini: 'gemini-3.1-flash-lite',
+      grok: 'grok-4.3',
+    };
+    return legacyMap[this.agent] || 'deepseek-v4-flash';
   }
 
   private buildPrompt(
