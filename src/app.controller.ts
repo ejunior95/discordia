@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nestjs";
 import {
   Body,
   Controller,
@@ -56,6 +57,15 @@ export class AppController {
       uptime: uptimeString,
       timestamp: new Date().toISOString(),
     });
+  }
+
+  @Get("/debug-sentry")
+  getError() {
+    Sentry.logger.info('User triggered test error', {
+      action: 'test_error_endpoint',
+    });
+    Sentry.metrics.count('test_counter', 1);
+    throw new Error("My first Sentry error!");
   }
 
   @UseGuards(AuthGuard('jwt'), OrchestratorGuard, CreditsGuard)
