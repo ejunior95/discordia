@@ -234,7 +234,7 @@ The Docker setup serves the API on port `3000` using `.env` values.
 2. Update `GameActionDto` if the context should be accepted by `/ai/game-action`.
 3. Add parser, prompt builder, and summary logic to `gamePromptBuilders.ts`.
 4. Add or update specs in `src/utils/gamePromptBuilders.spec.ts`.
-5. Update frontend `GameActionContext`, feature hook, route, UI, selected-agent flow, and sessionStorage migration/sanitization.
+5. Update frontend `GameActionContext`, feature hook, route, UI, selected-agent flow, and localStorage migration/sanitization.
 6. Decide whether the context needs a credit action/capability and update `CREDIT_COSTS`, `ACTION_CAPABILITY`, frontend `FeatureGate`, and route navigation.
 
 ### Error Handling
