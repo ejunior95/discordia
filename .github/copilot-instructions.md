@@ -18,6 +18,9 @@ The backend also drives AI-powered game flows for chess, hangman, jokenpo, RPG, 
 - Billing and credits: plans expose capabilities, credits are charged/refunded around AI actions, and balance is surfaced through `X-Credits-Balance`.
 - Stats and voting: chat rounds are persisted, users vote for a winner, and stats feed the home dashboard and account pages.
 - Audio: RPG master turns can synthesize narration with ElevenLabs; rap battles can create and poll music tasks with Sunor.
+- Orchestrator module: `src/modules/orchestrator` provides a separate guarded/decorated multi-target orchestration path; do not move normal `AppService` chat/game flows into it unless the endpoint already uses that module contract.
+- Alignment/minimax modules: `alignment` supports music/audio metadata alignment; `minimax` is present but not part of the supported public agent list.
+- Observability: `src/instrument.ts` initializes Sentry/profiling and `SentryGlobalFilter` is registered globally in `AppModule`.
 
 ### Service Structure
 
@@ -74,6 +77,7 @@ Most new orchestration should live in `src/app.service.ts`; keep provider-specif
 - `main.ts` applies `helmet()`, `cookieParser()`, and the global `ValidationPipe`.
 - `AppModule` registers a global `ThrottlerGuard` with short and medium limits.
 - `AppModule` registers `CreditsBalanceInterceptor` globally; keep it in place so the frontend can update credit balance from `X-Credits-Balance`.
+- `AppModule` also registers `SentryGlobalFilter`; preserve it when changing exception handling or module providers.
 - Passwords use `bcryptjs`; hashing helpers live in `src/utils/hash.ts`.
 - Email verification uses a 6-digit OTP code (bcrypt-hashed, 10 min TTL, 5 attempts max, 60s resend cooldown) handled by `UsersService` + `EmailService` via Resend; endpoints are `POST /auth/verify-email` and `POST /auth/resend-verification`. Login is blocked for unverified accounts with `403 EMAIL_NOT_VERIFIED`.
 - Avatar upload goes through `S3Service`; controllers should not talk to S3 directly.
