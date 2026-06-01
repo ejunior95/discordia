@@ -34,6 +34,16 @@ type ActorRef = 'user' | AgentName;
 type TurnRole = 'master' | 'player';
 type TurnStatus = 'loading' | 'success' | 'error';
 
+type DiceType = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100';
+
+interface DiceRoll {
+  dice: DiceType;
+  raw: number;
+  modifier: number;
+  modifierLabel?: string;
+  total: number;
+}
+
 interface Attributes {
   for: number;
   des: number;
@@ -60,6 +70,7 @@ interface TurnAction {
   status: TurnStatus;
   error?: string;
   createdAt?: string;
+  roll?: DiceRoll;
 }
 
 interface RpgCampaignPayload {
@@ -72,6 +83,7 @@ interface RpgCampaignPayload {
   currentTurnIndex: number;
   characters: Character[];
   turns: TurnAction[];
+  pendingRoll?: DiceRoll;
   status?: string;
   createdAt?: string;
 }
@@ -338,6 +350,16 @@ function getActorLabel(actor: ActorRef, characters?: Character[]): string {
   return IA_LABELS[actor];
 }
 
+function formatRoll(roll: DiceRoll): string {
+  const mod =
+    roll.modifier === 0
+      ? ''
+      : ` ${roll.modifier > 0 ? '+' : '−'}${Math.abs(roll.modifier)}${
+          roll.modifierLabel ? ` (${roll.modifierLabel})` : ''
+        }`;
+  return `🎲 ${roll.dice}: ${roll.raw}${mod} = ${roll.total}`;
+}
+
 function formatHistory(turns: TurnAction[], characters: Character[]): string {
   if (turns.length === 0)
     return '(sem histórico ainda — é o início da campanha)';
@@ -349,7 +371,8 @@ function formatHistory(turns: TurnAction[], characters: Character[]): string {
         turn.role === 'master'
           ? 'MESTRE'
           : getActorLabel(turn.actor, characters);
-      return `[${who}]: ${turn.content.trim()}`;
+      const rollNote = turn.roll ? ` [${formatRoll(turn.roll)}]` : '';
+      return `[${who}]: ${turn.content.trim()}${rollNote}`;
     })
     .join('\n');
 }
@@ -374,15 +397,23 @@ export function buildMasterPrompt(campaign: RpgCampaignPayload): string {
       : `Cenário: ${scenarioCfg.label} — ${scenarioCfg.description}`;
 
   return [
-    'Você é o MESTRE de uma campanha de RPG estilo Dungeons & Dragons em português brasileiro.',
+    'Você é o MESTRE (Game Master) especialista de uma campanha de RPG de mesa estilo Dungeons & Dragons 5e, em português brasileiro.',
     customLine,
     scenarioCfg.toneLine,
-    `Personagens na mesa:\n${formatRoster(campaign.characters)}`,
+    `Personagens na mesa (todos se conhecem pelo nome):\n${formatRoster(
+      campaign.characters,
+    )}`,
     `Histórico recente:\n${formatHistory(campaign.turns, campaign.characters)}`,
-    'Sua tarefa:',
-    '- Descreva a próxima cena em 3 a 5 frases vívidas.',
-    '- NÃO fale ou aja pelos personagens dos jogadores.',
-    '- Termine com uma situação, pergunta ou desafio que exija ação dos jogadores.',
+    'Regras de jogo que você conduz como especialista:',
+    '- Use o sistema d20: para ações incertas, peça uma rolagem de d20 + atributo relevante (FOR, DES, CON, INT, SAB ou CAR) contra uma Classe de Dificuldade (CD) que você define (fácil 10, médio 15, difícil 20).',
+    '- Em combate, organize por iniciativa, descreva inimigos com objetividade, resolva ataques (rolagem vs CA), aplique dano e atualize o HP dos personagens. Use ataques de oportunidade, vantagem e desvantagem quando fizer sentido.',
+    '- Quando dano ou cura acontecer, anote no FINAL da narração marcadores de HP usando o nome EXATO do personagem: [HP Nome -7] para dano ou [HP Nome +4] para cura. Use um marcador para cada personagem afetado e não explique o marcador.',
+    '- Quando uma rolagem já foi feita (aparece no histórico como 🎲), narre a CONSEQUÊNCIA do resultado (sucesso, falha ou sucesso parcial) de forma justa.',
+    '- Incentive a interação entre os personagens: refira-se a eles pelo nome e crie ganchos para que conversem e ajam em conjunto.',
+    'Estilo da narração:',
+    '- Seja DIRETO e OBJETIVO. Descreva o ambiente e avance a história em 2 a 4 frases. NUNCA escreva textos longos e contemplativos sobre detalhes irrelevantes.',
+    '- NÃO fale nem aja pelos personagens dos jogadores.',
+    '- Termine com uma situação, desafio ou pergunta clara que exija ação; se houver incerteza ou combate, peça explicitamente a rolagem necessária (ex.: "Role d20 + DES").',
     '- Responda APENAS com a narração, sem rótulos, sem aspas externas, sem comentários.',
   ].join('\n\n');
 }
@@ -408,20 +439,33 @@ export function buildPlayerPrompt(
   const attrs = character.attributes;
   const attrsLine = `FOR ${attrs.for} · DES ${attrs.des} · CON ${attrs.con} · INT ${attrs.int} · SAB ${attrs.sab} · CAR ${attrs.car}`;
 
+  const rollLine = campaign.pendingRoll
+    ? `Sua rolagem para esta ação: ${formatRoll(
+        campaign.pendingRoll,
+      )}. Interprete esse resultado na sua ação (sucesso alto, falha em valores baixos).`
+    : undefined;
+
   return [
-    `Você é "${character.name}", um(a) ${character.classe} em uma campanha de RPG estilo Dungeons & Dragons.`,
+    `Você é "${character.name}", um(a) ${character.classe} em uma campanha de RPG estilo Dungeons & Dragons 5e.`,
     customLine,
     `Seus atributos: ${attrsLine}. HP atual: ${character.hp}/${character.maxHp}.`,
+    `Personagens na mesa (você conhece todos pelo nome):\n${formatRoster(
+      campaign.characters,
+    )}`,
     `Histórico recente:\n${formatHistory(campaign.turns, campaign.characters)}`,
     lastMasterTurn
       ? `O Mestre acabou de narrar:\n"""${lastMasterTurn.content.trim()}"""`
       : 'A aventura está começando.',
+    rollLine ?? '',
     'Sua tarefa:',
-    `- Responda em primeira pessoa como ${character.name}, em 2 a 4 frases.`,
-    '- Pode misturar fala ("entre aspas") e descrição de ação.',
-    '- Seja coerente com sua classe, atributos e o histórico.',
+    `- Responda em primeira pessoa como ${character.name}, em 2 a 4 frases. Seja direto e objetivo.`,
+    '- Pode misturar fala ("entre aspas") e descrição de ação. Em combate, declare claramente o que faz (atacar, defender, usar habilidade, fugir).',
+    '- Você pode se dirigir a outros personagens da mesa pelo nome, responder a eles e propor ações em conjunto.',
+    '- Seja coerente com sua classe, atributos, HP e o histórico.',
     '- Responda APENAS com a fala/ação, sem rótulos como "Personagem:" e sem comentários.',
-  ].join('\n\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 function parseChessPayload(payload: unknown) {

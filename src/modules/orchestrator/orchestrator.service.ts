@@ -241,7 +241,7 @@ export class OrchestratorService {
       'rpg-master-narration':
         'narração do mestre de RPG descrevendo cena ou consequência para os jogadores.',
       'rpg-player-action':
-        'ação curta do jogador de RPG, descrevendo o que o personagem faz (ex.: "ataco o goblin", "investigo a porta").',
+        'ação curta do jogador de RPG, descrevendo o que o personagem faz, fala ou propõe a outros personagens; pode conter anotações de rolagem de dados (ex.: "ataco o goblin", "investigo a porta", "🎲 d20: 17 = 19", "convido Aramir a recuar").',
       'hangman-word':
         'palavra secreta para o jogo da forca: UMA única palavra real, sem números nem caracteres especiais, obrigatoriamente coerente com a categoria/tema escolhido quando informado.',
       'hangman-category':

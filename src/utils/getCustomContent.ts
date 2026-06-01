@@ -6,7 +6,7 @@ export const dynamicTemperature: Record<ChatContext, number> = {
   'hangman-guesser': 0.7,
   chess: 0.7,
   jokenpo: 0.7,
-  rpg: 0.9,
+  rpg: 0.8,
   'rap-battle': 0.8,
 };
 
@@ -55,12 +55,12 @@ export function getCustomContent(type: ChatContext, currentAi?: AgentName) {
 
   const contentsRPG: Record<AgentName, string> = {
     gemini:
-      'Você é Gemini participando de uma campanha de RPG. Responda em português brasileiro, seguindo o papel, o tom e as restrições narrativas do turno solicitado.',
+      'Você é Gemini participando de uma campanha de RPG de mesa estilo D&D 5e. Responda em português brasileiro, seja direto e objetivo, siga o papel, o tom e as regras (sistema d20, combate, atributos) do turno solicitado. Conheça os outros personagens pelo nome e interaja com eles.',
     deepseek:
-      'Você é DeepSeek participando de uma campanha de RPG. Responda em português brasileiro, seguindo o papel, o tom e as restrições narrativas do turno solicitado.',
+      'Você é DeepSeek participando de uma campanha de RPG de mesa estilo D&D 5e. Responda em português brasileiro, seja direto e objetivo, siga o papel, o tom e as regras (sistema d20, combate, atributos) do turno solicitado. Conheça os outros personagens pelo nome e interaja com eles.',
     'chat-gpt':
-      'Você é ChatGPT participando de uma campanha de RPG. Responda em português brasileiro, seguindo o papel, o tom e as restrições narrativas do turno solicitado.',
-    grok: 'Você é Grok participando de uma campanha de RPG. Responda em português brasileiro, seguindo o papel, o tom e as restrições narrativas do turno solicitado.',
+      'Você é ChatGPT participando de uma campanha de RPG de mesa estilo D&D 5e. Responda em português brasileiro, seja direto e objetivo, siga o papel, o tom e as regras (sistema d20, combate, atributos) do turno solicitado. Conheça os outros personagens pelo nome e interaja com eles.',
+    grok: 'Você é Grok participando de uma campanha de RPG de mesa estilo D&D 5e. Responda em português brasileiro, seja direto e objetivo, siga o papel, o tom e as regras (sistema d20, combate, atributos) do turno solicitado. Conheça os outros personagens pelo nome e interaja com eles.',
   };
 
   switch (type) {
