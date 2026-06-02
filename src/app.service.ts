@@ -26,6 +26,11 @@ import { MusicGenerationService } from './modules/music-generation/music-generat
 import { StatsService } from './modules/stats/stats.service';
 import { CreditsService } from './modules/credits/credits.service';
 import { CREDIT_COSTS } from './modules/credits/credit-costs';
+import { OrchestratorService } from './modules/orchestrator/orchestrator.service';
+import {
+  pickCharacterVoice,
+  randomCharacterVoiceGender,
+} from './modules/tts/voice-pool';
 import { v4 as uuid } from 'uuid';
 import {
   buildGameActionPrompt,
@@ -63,6 +68,7 @@ export class AppService implements OnModuleInit {
     private readonly musicGenerationService: MusicGenerationService,
     private readonly statsService: StatsService,
     private readonly creditsService: CreditsService,
+    private readonly orchestratorService: OrchestratorService,
   ) {
     this.providers = {
       'chat-gpt': this.chatGptService,
@@ -70,6 +76,72 @@ export class AppService implements OnModuleInit {
       deepseek: this.deepseekService,
       grok: this.grokService,
     };
+  }
+
+  private readRpgCharacter(
+    campaign: Record<string, unknown>,
+    actor: AgentName,
+  ): { name: string; voiceId?: string } | null {
+    const characters = campaign.characters;
+    if (!Array.isArray(characters)) return null;
+
+    const character = characters.find(
+      (item): item is Record<string, unknown> =>
+        item !== null &&
+        typeof item === 'object' &&
+        !Array.isArray(item) &&
+        item.owner === actor,
+    );
+    if (!character || typeof character.name !== 'string') return null;
+
+    return {
+      name: character.name,
+      voiceId:
+        typeof character.voiceId === 'string' && character.voiceId.trim()
+          ? character.voiceId
+          : undefined,
+    };
+  }
+
+  private readUsedRpgVoiceIds(
+    campaign: Record<string, unknown>,
+    currentActor: AgentName,
+  ): string[] {
+    const characters = campaign.characters;
+    if (!Array.isArray(characters)) return [];
+
+    return characters.flatMap((item) => {
+      if (item === null || typeof item !== 'object' || Array.isArray(item)) {
+        return [];
+      }
+      const character = item as Record<string, unknown>;
+      if (
+        character.owner === currentActor ||
+        typeof character.voiceId !== 'string'
+      ) {
+        return [];
+      }
+      return character.voiceId.trim() ? [character.voiceId] : [];
+    });
+  }
+
+  private async resolveRpgCharacterVoiceId(
+    campaign: Record<string, unknown>,
+    actor: AgentName,
+  ): Promise<string | null> {
+    const character = this.readRpgCharacter(campaign, actor);
+    if (!character) return null;
+    if (character.voiceId) return character.voiceId;
+
+    const classifiedGender = await this.orchestratorService.classifyNameGender(
+      character.name,
+    );
+    const voice = pickCharacterVoice(
+      classifiedGender ?? randomCharacterVoiceGender(),
+      this.readUsedRpgVoiceIds(campaign, actor),
+    );
+
+    return voice.id;
   }
 
   async onModuleInit() {
@@ -304,6 +376,64 @@ export class AppService implements OnModuleInit {
         }
         // NÃO persiste history do assistant — turno é abortado.
         throw error;
+      }
+    }
+
+    if (
+      context === 'rpg' &&
+      rpgCampaign &&
+      !isRpgMasterTurn &&
+      result.response?.trim()
+    ) {
+      const voiceId = await this.resolveRpgCharacterVoiceId(rpgCampaign, agent);
+
+      if (voiceId) {
+        const ttsCharge = await this.creditsService.charge(userId, {
+          amount: CREDIT_COSTS.TTS_RESPONSE,
+          action: 'TTS_RESPONSE',
+          reason: 'rpg_player_tts',
+        });
+        try {
+          const tts = await this.elevenLabsService.synthesize(result.response, {
+            voiceId,
+          });
+          const key = `rpg-audio/${userId}/${uuid()}.mp3`;
+          const audioUrl = await this.s3Service.uploadBuffer(
+            tts.buffer,
+            key,
+            tts.mimeType,
+          );
+
+          await this.historyService.add(
+            context,
+            userId,
+            'assistant',
+            result.response,
+            agent,
+            {
+              audioUrl,
+              audioMeta: {
+                provider: 'elevenlabs',
+                status: 'ready',
+                voiceId: tts.voiceId,
+                model: tts.model,
+              },
+            },
+          );
+
+          return {
+            roundId,
+            [agent]: { ...result, audio_url: audioUrl, voice_id: tts.voiceId },
+          };
+        } catch (error) {
+          this.logger.error(`Falha TTS RPG: ${(error as Error).message}`);
+          if (ttsCharge.transactionId) {
+            await this.creditsService
+              .refund(ttsCharge.transactionId, 'tts_synthesis_failed')
+              .catch(() => undefined);
+          }
+          throw error;
+        }
       }
     }
 

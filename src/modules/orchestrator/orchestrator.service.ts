@@ -6,6 +6,8 @@ import {
   OrchestratorVerdict,
 } from './orchestrator.types';
 
+export type NameGenderClassification = 'female' | 'male' | null;
+
 type OrchestratorMetadata = Record<string, unknown>;
 
 const DEFAULT_TIMEOUT_MS = 12000;
@@ -74,6 +76,36 @@ export class OrchestratorService {
         `Orquestrador indisponível (${(err as Error).message}); seguindo como ok.`,
       );
       return { severity: 'ok', reason: 'orchestrator_unavailable' };
+    }
+  }
+
+  async classifyNameGender(
+    name: string | null | undefined,
+  ): Promise<NameGenderClassification> {
+    const trimmed = (name ?? '').trim();
+    if (!trimmed) return null;
+
+    try {
+      const response = await Promise.race([
+        this.invokeNameGender(trimmed),
+        new Promise<string>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('orchestrator_timeout')),
+            this.timeoutMs,
+          ),
+        ),
+      ]);
+      const parsed = JSON.parse(this.extractJsonObject(response)) as {
+        gender?: unknown;
+      };
+      return parsed.gender === 'female' || parsed.gender === 'male'
+        ? parsed.gender
+        : null;
+    } catch (err) {
+      this.logger.warn(
+        `Classificação de gênero indisponível (${(err as Error).message}); usando voz aleatória.`,
+      );
+      return null;
     }
   }
 
@@ -223,6 +255,27 @@ export class OrchestratorService {
     const { system, user } = this.buildPrompt(kind, text, metadata);
     const { response } = await this.minimax.execute(user, [], system);
     return this.parse(response);
+  }
+
+  private async invokeNameGender(name: string): Promise<string> {
+    const system = [
+      'Você é um classificador de nomes próprios para escolha de voz TTS em português brasileiro.',
+      'Avalie se o nome parece mais feminino, masculino ou desconhecido/ambíguo.',
+      'Use "unknown" quando houver dúvida, nome inventado, nome neutro, apelido, termo não humano ou baixa confiança.',
+      'Responda ESTRITAMENTE em JSON válido em uma única linha, sem markdown e sem texto extra:',
+      '{"gender":"female|male|unknown"}',
+    ].join('\n');
+    const user = `Nome do personagem: """${name}"""`;
+    const { response } = await this.minimax.execute(user, [], system);
+    return response;
+  }
+
+  private extractJsonObject(response: string): string {
+    const trimmed = response.trim();
+    const start = trimmed.indexOf('{');
+    const end = trimmed.lastIndexOf('}');
+    if (start === -1 || end === -1 || end < start) return trimmed;
+    return trimmed.slice(start, end + 1);
   }
 
   // ── Construção do prompt ─────────────────────────────────────────────────

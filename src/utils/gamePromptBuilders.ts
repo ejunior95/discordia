@@ -60,6 +60,7 @@ interface Character {
   hp: number;
   maxHp: number;
   attributes: Attributes;
+  voiceId?: string;
 }
 
 interface TurnAction {
