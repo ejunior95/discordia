@@ -606,3 +606,113 @@ export function summarizeGameAction(
       return `[${context}] ação de jogo`;
   }
 }
+
+export interface GameMeta {
+  gameId?: string;
+  theme?: string;
+  scenario?: string;
+  scenarioLabel?: string;
+  gameStatus?: string;
+  gameDetail?: Record<string, unknown>;
+}
+
+function parseJokenpoChoice(value: unknown): JokenpoChoice | undefined {
+  const text = String(value ?? '').toLowerCase();
+  if (text.includes('rock') || text.includes('pedra')) return 'rock';
+  if (text.includes('paper') || text.includes('papel')) return 'paper';
+  if (text.includes('scissor') || text.includes('tesoura')) return 'scissors';
+  return undefined;
+}
+
+/**
+ * Extrai metadados de partida/campanha do payload de uma ação de jogo, para
+ * persistência no Round (estatísticas por batalha/campanha e exibição de temas).
+ */
+export function extractGameMeta(
+  context: GameActionContext,
+  payload: unknown,
+  response?: string,
+): GameMeta {
+  if (!isRecord(payload)) return {};
+
+  if (context === 'rap-battle') {
+    const battleId =
+      typeof payload.battleId === 'string' ? payload.battleId : undefined;
+    const theme =
+      typeof payload.theme === 'string' && payload.theme.trim()
+        ? payload.theme.trim()
+        : undefined;
+    return {
+      gameId: battleId,
+      theme,
+      gameDetail: {
+        roundIndex: typeof payload.roundIndex === 'number' ? payload.roundIndex : undefined,
+      },
+    };
+  }
+
+  if (context === 'rpg') {
+    const campaign = isRecord(payload.campaign) ? payload.campaign : null;
+    if (!campaign) return {};
+    const gameId =
+      typeof campaign.id === 'string' ? campaign.id : undefined;
+    const scenario =
+      typeof campaign.scenario === 'string' ? campaign.scenario : undefined;
+    const customPrompt =
+      typeof campaign.customPrompt === 'string' && campaign.customPrompt.trim()
+        ? campaign.customPrompt.trim()
+        : undefined;
+    const scenarioLabel =
+      scenario && scenario in SCENARIOS
+        ? SCENARIOS[scenario as Scenario].label
+        : undefined;
+    const gameStatus =
+      typeof campaign.status === 'string' ? campaign.status : undefined;
+    return {
+      gameId,
+      scenario,
+      scenarioLabel: customPrompt ?? scenarioLabel,
+      gameStatus,
+    };
+  }
+
+  if (context === 'jokenpo') {
+    const userChoice = parseJokenpoChoice(payload.userChoice);
+    const aiChoice = parseJokenpoChoice(response);
+    return {
+      gameId: typeof payload.gameId === 'string' ? payload.gameId : undefined,
+      gameStatus: typeof payload.gameStatus === 'string' ? payload.gameStatus : undefined,
+      gameDetail: {
+        userChoice,
+        aiChoice,
+        outcome:
+          userChoice && aiChoice
+            ? decideJokenpoWinner(userChoice, aiChoice)
+            : undefined,
+      },
+    };
+  }
+
+  if (context === 'chess') {
+    return {
+      gameId: typeof payload.gameId === 'string' ? payload.gameId : undefined,
+      gameStatus: typeof payload.gameStatus === 'string' ? payload.gameStatus : undefined,
+      gameDetail: {
+        move: response?.trim().split(/\s+/)[0],
+      },
+    };
+  }
+
+  if (context === 'hangman-chooser' || context === 'hangman-guesser') {
+    return {
+      gameId: typeof payload.gameId === 'string' ? payload.gameId : undefined,
+      gameStatus: typeof payload.gameStatus === 'string' ? payload.gameStatus : undefined,
+      gameDetail: {
+        category: typeof payload.category === 'string' ? payload.category : undefined,
+        pattern: typeof payload.pattern === 'string' ? payload.pattern : undefined,
+      },
+    };
+  }
+
+  return {};
+}

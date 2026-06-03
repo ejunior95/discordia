@@ -34,6 +34,7 @@ import {
 import { v4 as uuid } from 'uuid';
 import {
   buildGameActionPrompt,
+  extractGameMeta,
   GameActionContext,
   summarizeGameAction,
 } from './utils/gamePromptBuilders';
@@ -309,6 +310,10 @@ export class AppService implements OnModuleInit {
 
     await this.historyService.add(context, userId, 'user', actionSummary);
 
+    // Metadados de partida/campanha persistidos no Round para estatísticas
+    // por batalha/campanha (em vez de por ação) e exibição de temas.
+    const gameMeta = extractGameMeta(context, payload, result.response);
+
     // Persiste Round para permitir votação em qualquer contexto de game action.
     // É feito aqui, antes dos paths específicos, para que o roundId esteja disponível
     // em todos os returns. Em caso de falha (RPG TTS), o Round persiste sem assistant
@@ -317,6 +322,12 @@ export class AppService implements OnModuleInit {
       user_id: userId,
       question: actionSummary,
       context,
+      game_id: gameMeta.gameId,
+      theme: gameMeta.theme,
+      scenario: gameMeta.scenario,
+      scenarioLabel: gameMeta.scenarioLabel,
+      game_status: gameMeta.gameStatus,
+      game_detail: gameMeta.gameDetail,
       responses: [{ agent, content: result.response }],
       winner_agent: null,
       voted_at: null,

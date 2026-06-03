@@ -19,6 +19,37 @@ const GAME_CONTEXTS = new Set([
   'hangman-guesser',
 ]);
 
+// Rótulos amigáveis por contexto de jogo (usados no feed de atividade recente).
+const GAME_LABELS: Record<string, string> = {
+  chess: 'Xadrez',
+  jokenpo: 'Jokenpô',
+  'hangman-chooser': 'Forca',
+  'hangman-guesser': 'Forca',
+  'rap-battle': 'Batalha de rima',
+  rpg: 'Campanha de RPG',
+};
+
+const AGENT_LABELS: Record<AgentName, string> = {
+  'chat-gpt': 'ChatGPT',
+  gemini: 'Gemini',
+  deepseek: 'DeepSeek',
+  grok: 'Grok',
+};
+
+const JOKENPO_CHOICE_LABELS: Record<string, string> = {
+  rock: 'pedra',
+  paper: 'papel',
+  scissors: 'tesoura',
+};
+
+function readDetailString(
+  detail: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = detail?.[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
 function emptyByAgent(): Record<AgentName, StatsByAgent> {
   return ALLOWED_AGENTS.reduce(
     (acc, name) => {
@@ -179,45 +210,151 @@ export class StatsService {
     await this.statsRepo.save(stats);
   }
 
-  async getHomeSnapshot() {
-    const stats = await this.ensureStats();
+  async getHomeSnapshot(userId?: string) {
+    const isUser = !!userId;
 
-    const leaderboard = ALLOWED_AGENTS.map((agent) => ({
-      agent,
-      ...stats.byAgent[agent],
-    })).sort((a, b) => b.wins - a.wins);
+    // Rounds do escopo (todos os usuários ou apenas o usuário atual).
+    const rounds = await this.roundsRepo.find({
+      where: isUser ? { user_id: userId } : {},
+    });
+
+    const totals = this.computeTotals(rounds);
+
+    // Leaderboard e weekly:
+    // - Global: usa o documento agregado de Stats (mantido incrementalmente).
+    // - Usuário: computado a partir dos rounds votados do próprio usuário.
+    let leaderboard: Array<{ agent: AgentName } & StatsByAgent>;
+    let weekly: WeeklyBucket[];
+    if (isUser) {
+      leaderboard = this.computeLeaderboardFromRounds(rounds);
+      weekly = this.computeWeeklyFromRounds(rounds);
+    } else {
+      const stats = await this.ensureStats();
+      leaderboard = ALLOWED_AGENTS.map((agent) => ({
+        agent,
+        ...stats.byAgent[agent],
+      })).sort((a, b) => b.wins - a.wins);
+      weekly = this.fillWeekly(stats.weekly);
+    }
 
     const leader = leaderboard[0]?.wins > 0 ? leaderboard[0].agent : null;
 
-    const seismicDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const recentWinners = await this.roundsRepo.find({
-      where: {
-        winner_agent: { $ne: null },
-        voted_at: { $gte: seismicDaysAgo },
-      },
-    });
-    const weeklyCount = emptyWeeklyByAgent();
-    for (const r of recentWinners) {
-      if (r.winner_agent) weeklyCount[r.winner_agent] += 1;
-    }
-    let iaOfWeek: {
-      agent: AgentName;
-      weeklyWins: number;
-      streak: number;
-    } | null = null;
-    const ranked = ALLOWED_AGENTS.map((a) => ({
-      agent: a,
-      weeklyWins: weeklyCount[a],
-    })).sort((a, b) => b.weeklyWins - a.weeklyWins);
-    if (ranked[0]?.weeklyWins > 0) {
-      iaOfWeek = {
-        agent: ranked[0].agent,
-        weeklyWins: ranked[0].weeklyWins,
-        streak: stats.byAgent[ranked[0].agent].streak,
-      };
+    const iaOfWeek = this.computeIaOfWeek(rounds, leaderboard);
+
+    const recent = this.computeRecentActivity(rounds);
+
+    return {
+      totals,
+      leader,
+      leaderboard,
+      iaOfWeek,
+      weekly: weekly.map((b) => ({
+        weekStart: b.weekStart,
+        byAgent: b.byAgent,
+      })),
+      recent,
+    };
+  }
+
+  /** Totais por escopo (todos os jogos), calculados a partir dos rounds. */
+  private computeTotals(rounds: Round[]) {
+    let questions = 0;
+    let votes = 0;
+    let miniGames = 0;
+    const rapBattleIds = new Set<string>();
+    const rpgCampaignIds = new Set<string>();
+
+    for (const r of rounds) {
+      const ctx = r.context;
+      if (!ctx || ctx === 'chat') {
+        questions += 1;
+      } else if (ctx === 'rap-battle') {
+        rapBattleIds.add(r.game_id ?? r._id.toString());
+      } else if (ctx === 'rpg') {
+        rpgCampaignIds.add(r.game_id ?? r._id.toString());
+      } else if (GAME_CONTEXTS.has(ctx)) {
+        // chess, jokenpo, hangman-*
+        miniGames += 1;
+      }
+
+      if (r.winner_agent && r.voted_at) votes += 1;
     }
 
-    const weeklySorted = [...stats.weekly].sort(
+    return {
+      questions,
+      rapBattles: rapBattleIds.size,
+      rpgCampaigns: rpgCampaignIds.size,
+      miniGames,
+      votes,
+    };
+  }
+
+  /** Leaderboard por agente computado a partir dos rounds votados do escopo. */
+  private computeLeaderboardFromRounds(
+    rounds: Round[],
+  ): Array<{ agent: AgentName } & StatsByAgent> {
+    const byAgent = emptyByAgent();
+
+    for (const r of rounds) {
+      for (const resp of r.responses ?? []) {
+        if (resp.content && byAgent[resp.agent]) {
+          byAgent[resp.agent].rounds += 1;
+        }
+      }
+    }
+
+    const voted = rounds
+      .filter((r) => r.winner_agent && r.voted_at)
+      .sort(
+        (a, b) =>
+          new Date(a.voted_at as Date).getTime() -
+          new Date(b.voted_at as Date).getTime(),
+      );
+
+    let lastWinner: AgentName | null = null;
+    for (const r of voted) {
+      const winner = r.winner_agent as AgentName;
+      const ag = byAgent[winner];
+      if (!ag) continue;
+      ag.wins += 1;
+      ag.votes += 1;
+      ag.lastWinAt = r.voted_at ?? null;
+      if (lastWinner === winner) {
+        ag.streak += 1;
+      } else {
+        for (const a of ALLOWED_AGENTS) byAgent[a].streak = 0;
+        ag.streak = 1;
+      }
+      lastWinner = winner;
+    }
+
+    return ALLOWED_AGENTS.map((agent) => ({
+      agent,
+      ...byAgent[agent],
+    })).sort((a, b) => b.wins - a.wins);
+  }
+
+  /** Buckets semanais (8 semanas) computados a partir dos rounds votados do escopo. */
+  private computeWeeklyFromRounds(rounds: Round[]): WeeklyBucket[] {
+    const buckets: WeeklyBucket[] = [];
+    for (const r of rounds) {
+      if (!r.winner_agent || !r.voted_at) continue;
+      const wStart = weekStartOf(new Date(r.voted_at));
+      let bucket = buckets.find(
+        (b) => new Date(b.weekStart).getTime() === wStart.getTime(),
+      );
+      if (!bucket) {
+        bucket = { weekStart: wStart, byAgent: emptyWeeklyByAgent() };
+        buckets.push(bucket);
+      }
+      bucket.byAgent[r.winner_agent] += 1;
+    }
+    return this.fillWeekly(buckets);
+  }
+
+  /** Preenche a janela de 8 semanas (zeros para semanas sem dados). */
+  private fillWeekly(source: WeeklyBucket[]): WeeklyBucket[] {
+    const weeklySorted = [...source].sort(
       (a, b) =>
         new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime(),
     );
@@ -230,34 +367,190 @@ export class StatsService {
       const found = weeklySorted.find(
         (b) => new Date(b.weekStart).getTime() === target.getTime(),
       );
-      filled.push(
-        found ?? { weekStart: target, byAgent: emptyWeeklyByAgent() },
-      );
+      filled.push(found ?? { weekStart: target, byAgent: emptyWeeklyByAgent() });
+    }
+    return filled;
+  }
+
+  /** IA da semana: mais vitórias nos últimos 7 dias dentro do escopo. */
+  private computeIaOfWeek(
+    rounds: Round[],
+    leaderboard: Array<{ agent: AgentName } & StatsByAgent>,
+  ): { agent: AgentName; weeklyWins: number; streak: number } | null {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const weeklyCount = emptyWeeklyByAgent();
+    for (const r of rounds) {
+      if (
+        r.winner_agent &&
+        r.voted_at &&
+        new Date(r.voted_at).getTime() >= sevenDaysAgo
+      ) {
+        weeklyCount[r.winner_agent] += 1;
+      }
+    }
+    const ranked = ALLOWED_AGENTS.map((a) => ({
+      agent: a,
+      weeklyWins: weeklyCount[a],
+    })).sort((a, b) => b.weeklyWins - a.weeklyWins);
+    if (!ranked[0] || ranked[0].weeklyWins <= 0) return null;
+    const streak =
+      leaderboard.find((l) => l.agent === ranked[0].agent)?.streak ?? 0;
+    return {
+      agent: ranked[0].agent,
+      weeklyWins: ranked[0].weeklyWins,
+      streak,
+    };
+  }
+
+  private formatRpgActivity(r: Round) {
+    const status =
+      r.game_status === 'paused'
+        ? 'campanha pausada'
+        : r.game_status === 'setup'
+          ? 'campanha em preparação'
+          : 'campanha em andamento';
+    return {
+      title: `Campanha RPG: ${status}`,
+      subtitle: r.scenarioLabel?.trim() || r.scenario?.trim() || 'Campanha de RPG',
+    };
+  }
+
+  private formatGameActivity(r: Round, context: string) {
+    const agent = r.responses?.[0]?.agent;
+    const agentLabel = agent ? AGENT_LABELS[agent] : 'IA';
+
+    if (context === 'jokenpo') {
+      const aiChoice = readDetailString(r.game_detail, 'aiChoice');
+      const outcome = readDetailString(r.game_detail, 'outcome');
+      const choice = aiChoice ? ` (${JOKENPO_CHOICE_LABELS[aiChoice] ?? aiChoice})` : '';
+      const result =
+        outcome === 'ai'
+          ? `${agentLabel} venceu`
+          : outcome === 'user'
+            ? 'você venceu'
+            : outcome === 'draw'
+              ? 'empate'
+              : `${agentLabel} jogou`;
+      return {
+        title: `Jokenpô: ${result}${choice}`,
+        subtitle: 'Rodada de pedra, papel e tesoura',
+      };
     }
 
-    const recent = await this.roundsRepo.find({
-      where: { winner_agent: { $ne: null } },
-      order: { voted_at: 'DESC' } as never,
-      take: 5,
-    });
+    if (context === 'chess') {
+      const move = readDetailString(r.game_detail, 'move');
+      return {
+        title: move ? `Xadrez: ${agentLabel} jogou ${move}` : `Xadrez: ${agentLabel} jogou`,
+        subtitle: 'Lance de xadrez',
+      };
+    }
+
+    if (context === 'hangman-chooser') {
+      return {
+        title: `Forca: ${agentLabel} escolheu uma palavra`,
+        subtitle: 'Rodada de forca',
+      };
+    }
+
+    if (context === 'hangman-guesser') {
+      const pattern = readDetailString(r.game_detail, 'pattern');
+      return {
+        title: pattern
+          ? `Forca: ${agentLabel} tentou adivinhar (${pattern})`
+          : `Forca: ${agentLabel} tentou adivinhar`,
+        subtitle: 'Rodada de forca',
+      };
+    }
 
     return {
-      totals: stats.totals,
-      leader,
-      leaderboard,
-      iaOfWeek,
-      weekly: filled.map((b) => ({
-        weekStart: b.weekStart,
-        byAgent: b.byAgent,
-      })),
-      recent: recent.map((r) => ({
-        id: r._id.toString(),
-        question: r.question,
-        winner: r.winner_agent,
-        votedAt: r.voted_at,
-        createdAt: r.created_at,
-      })),
+      title: `${GAME_LABELS[context] ?? 'Jogo'}: atividade registrada`,
+      subtitle: 'Atividade de jogo',
     };
+  }
+
+  /**
+   * Feed unificado de atividade recente no escopo:
+   * - perguntas de chat
+   * - temas de batalhas de rima (1 entrada por batalha)
+   * - temas de campanhas de RPG (1 entrada por campanha)
+   * - resultados de mini-games (xadrez, jokenpô, forca)
+   */
+  private computeRecentActivity(rounds: Round[]) {
+    const sorted = [...rounds].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+
+    const seenGameIds = new Set<string>();
+    const items: Array<{
+      id: string;
+      kind: 'chat' | 'rap' | 'rpg' | 'game';
+      title: string;
+      subtitle: string;
+      winner: AgentName | null;
+      at: Date;
+    }> = [];
+
+    for (const r of sorted) {
+      if (items.length >= 8) break;
+      const ctx = r.context;
+      const at = r.voted_at ?? r.created_at;
+
+      if (!ctx || ctx === 'chat') {
+        items.push({
+          id: r._id.toString(),
+          kind: 'chat',
+          title: r.question,
+          subtitle: 'Pergunta no chat',
+          winner: r.winner_agent ?? null,
+          at,
+        });
+      } else if (ctx === 'rap-battle') {
+        const key = r.game_id ?? r._id.toString();
+        if (seenGameIds.has(`rap:${key}`)) continue;
+        seenGameIds.add(`rap:${key}`);
+        items.push({
+          id: r._id.toString(),
+          kind: 'rap',
+          title: `Batalha de rima: ${r.theme?.trim() || 'tema livre'}`,
+          subtitle: 'Tema da batalha',
+          winner: r.winner_agent ?? null,
+          at,
+        });
+      } else if (ctx === 'rpg') {
+        const key = r.game_id ?? r._id.toString();
+        if (seenGameIds.has(`rpg:${key}`)) continue;
+        seenGameIds.add(`rpg:${key}`);
+        const activity = this.formatRpgActivity(r);
+        items.push({
+          id: r._id.toString(),
+          kind: 'rpg',
+          title: activity.title,
+          subtitle: activity.subtitle,
+          winner: r.winner_agent ?? null,
+          at,
+        });
+      } else if (GAME_CONTEXTS.has(ctx)) {
+        const activity = this.formatGameActivity(r, ctx);
+        items.push({
+          id: r._id.toString(),
+          kind: 'game',
+          title: activity.title,
+          subtitle: activity.subtitle,
+          winner: null,
+          at,
+        });
+      }
+    }
+
+    return items.map((it) => ({
+      id: it.id,
+      kind: it.kind,
+      title: it.title,
+      subtitle: it.subtitle,
+      winner: it.winner,
+      at: it.at,
+    }));
   }
 
   async getUserStats(userId: string) {
@@ -319,6 +612,27 @@ export class StatsService {
       askedAt: r.created_at,
       votedAt: r.voted_at ?? null,
     }));
+  }
+
+  async updateGameStatus(
+    userId: string,
+    context: string,
+    gameId: string,
+    status: string,
+  ): Promise<number> {
+    const rounds = await this.roundsRepo.find({
+      where: { user_id: userId, context, game_id: gameId },
+    });
+
+    for (const round of rounds) {
+      round.game_status = status;
+    }
+
+    if (rounds.length > 0) {
+      await this.roundsRepo.save(rounds);
+    }
+
+    return rounds.length;
   }
 
   async recompute(): Promise<Stats> {

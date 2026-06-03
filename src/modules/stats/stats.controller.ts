@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpStatus,
@@ -19,9 +20,14 @@ export class StatsController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('/home')
-  async getHome(@Res() res: Response) {
+  async getHome(
+    @CurrentUser() user: { id: string },
+    @Query('scope') scope: string | undefined,
+    @Res() res: Response,
+  ) {
     try {
-      const snapshot = await this.statsService.getHomeSnapshot();
+      const userId = scope === 'user' ? user.id : undefined;
+      const snapshot = await this.statsService.getHomeSnapshot(userId);
       return res.status(HttpStatus.OK).json(snapshot);
     } catch (error) {
       throw new InternalServerErrorException(
@@ -62,6 +68,39 @@ export class StatsController {
     } catch (error) {
       throw new InternalServerErrorException(
         `Erro ao obter rodadas do usuário - ${(error as Error).message}`,
+      );
+    }
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/game-status')
+  async updateGameStatus(
+    @CurrentUser() user: { id: string },
+    @Body()
+    body: { context?: string; gameId?: string; status?: string },
+    @Res() res: Response,
+  ) {
+    const context = body.context?.trim();
+    const gameId = body.gameId?.trim();
+    const status = body.status?.trim();
+
+    if (!context || !gameId || !status) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ message: 'context, gameId e status são obrigatórios' });
+    }
+
+    try {
+      const updated = await this.statsService.updateGameStatus(
+        user.id,
+        context,
+        gameId,
+        status,
+      );
+      return res.status(HttpStatus.OK).json({ updated });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Erro ao atualizar status do jogo - ${(error as Error).message}`,
       );
     }
   }
